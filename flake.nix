@@ -7,7 +7,7 @@
   outputs = { self, flake-utils, nixpkgs, haskell-nix, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
       let
-        compiler-nix-name = "ghc922";
+        compiler-nix-name = "ghc8107";
         index-state = "2022-05-04T00:00:00Z";
 
         pkgs = import nixpkgs { inherit system overlays; inherit (haskell-nix) config; };
@@ -20,11 +20,18 @@
                 (name: type: if type == "regular" && hasSuffix ".cabal" name then [ name ] else [ ])
                 (builtins.readDir src));
 
-              cabalFile = if length cabalFiles == 1 then builtins.readFile (src + "/${head cabalFiles}") else buitins.abort "Could not find unique file with .cabal suffix in source: ${src}";
+              cabalPath =
+                if length cabalFiles == 1
+                then src + "/${head cabalFiles}"
+                else buitins.abort "Could not find unique file with .cabal suffix in source: ${src}";
+              cabalFile = builtins.readFile cabalPath;
               parse = field:
                 let
-                  lines = (filter (s: hasPrefix "${field}:" s) (splitString "\n" cabalFile));
-                  line = if lines != [ ] then head lines else builtins.abort "Could not find line with prefix '${field}:'";
+                  lines = filter (s: if builtins.match "^${field} *:.*$" (toLower s) != null then true else false) (splitString "\n" cabalFile);
+                  line =
+                    if lines != [ ]
+                    then head lines
+                    else builtins.abort "Could not find line with prefix ''${field}:' in ${cabalPath}";
                 in
                 replaceStrings [ " " ] [ "" ] (head (tail (splitString ":" line)));
               pname = parse "name";
