@@ -21,7 +21,12 @@
                 (builtins.readDir src));
 
               cabalFile = if length cabalFiles == 1 then builtins.readFile (src + "/${head cabalFiles}") else buitins.abort "Could not find unique file with .cabal suffix in source: ${src}";
-              parse = field: replaceStrings [ " " ] [ "" ] (head (tail (splitString ":" (head (filter (s: hasPrefix "${field}:" s) (splitString "\n" cabalFile))))));
+              parse = field:
+                let
+                  lines = (filter (s: hasPrefix "${field}:" s) (splitString "\n" cabalFile));
+                  line = if lines != [ ] then head lines else builtins.abort "Could not find line with prefix '${field}:'";
+                in
+                replaceStrings [ " " ] [ "" ] (head (tail (splitString ":" line)));
               pname = parse "name";
               version = parse "version";
             in
