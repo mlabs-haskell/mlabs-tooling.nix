@@ -14,6 +14,19 @@
 
         overlay = final: prev: rec {
 
+          mkPackageSpec = src: with pkgs.lib;
+            let
+              cabalFiles = concatLists (mapAttrsToList
+                (name: type: if type == "regular" && hasSuffix ".cabal" name then [ name ] else [ ])
+                (builtins.readDir src));
+
+              cabalFile = if length cabalFiles == 1 then builtins.readFile (src + "/${head cabalFiles}") else buitins.abort "Could not find unique file with .cabal suffix in source: ${src}";
+              parse = field: replaceStrings [ " " ] [ "" ] (head (tail (splitString ":" (head (filter (s: hasPrefix "${field}:" s) (splitString "\n" cabalFile))))));
+              pname = parse "name";
+              version = parse "version";
+            in
+            { inherit src pname version; };
+
           mkPackageTarball = { pname, version, src }: pkgs.runCommand "${pname}-${version}.tar.gz" { } ''
             cd ${src}/..
             tar --sort=name --owner=Hackage:0 --group=Hackage:0 --mtime='UTC 2009-01-01' -czvf $out $(basename ${src})
@@ -69,13 +82,15 @@
             ${pkgs.haskell-nix.nix-tools.${compiler-nix-name}}/bin/hackage-to-nix $out 01-index.tar "https://not-there/"
           '';
 
-          mkHackage = extraHackagePackages: rec {
+          mkHackageFromSpec = extraHackagePackages: rec {
             tarballs = pkgs.lib.listToAttrs (map (def: { name = def.pname; value = mkPackageTarball def; }) extraHackagePackages);
-            hackageTarball = mkHackageTarballFromDirs (map mkHackageDir extraHackagePackages);
+            hackageTarball = mkHackageTarball extraHackagePackages;
             hackageNix = mkHackageNix hackageTarball;
             # Prevent nix-build from trying to download the package
             module = { packages = (pkgs.lib.mapAttrs (pname: tarball: { src = tarball; }) tarballs); };
           };
+
+          mkHackage = srcs: mkHackageFromSpec (map mkPackageSpec srcs);
 
           # # equivalent extraPackages:
           # extraPackages = {
@@ -84,10 +99,7 @@
           # };
 
           # Usage:
-          extraHackagePackages = [
-            { pname = "mydep"; version = "0.0.1"; src = ./mydep; }
-          ];
-          myhackage = mkHackage extraHackagePackages;
+          myhackage = mkHackage [ ./mydep ];
           myapp = final.haskell-nix.project {
             src = ./myapp;
             inherit compiler-nix-name index-state;
@@ -103,7 +115,7 @@
         packages.default = (pkgs.myapp.flake { }).packages."myapp:exe:myapp";
 
         # export
-        inherit (pkgs) mkPackageTarball mkHackageDir mkHackageTarballFromDirs mkHackageTarball mkHackageNix mkHackage;
+        inherit (pkgs) mkPackageSpec mkPackageTarball mkHackageDir mkHackageTarballFromDirs mkHackageTarball mkHackageNix mkHackageFromSpec mkHackage;
 
         # for debugging
         inherit (pkgs) myapp haskell-nix myhackage;
