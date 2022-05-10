@@ -11,4 +11,3 @@ executable myapp
     build-depends:
         base
         , mydep
-        -- , external-package-demo

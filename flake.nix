@@ -89,9 +89,12 @@
 
           mkHackageNix = hackageTarball: pkgs.runCommand "hackage-nix" { } ''
             set -e
+            export LC_CTYPE=C.UTF-8
+            export LC_ALL=C.UTF-8
+            export LANG=C.UTF-8
             cp ${hackageTarball} 01-index.tar.gz
             ${pkgs.gzip}/bin/gunzip 01-index.tar.gz
-            ${pkgs.haskell-nix.nix-tools.${compiler-nix-name}}/bin/hackage-to-nix $out 01-index.tar "https://not-there/"
+            ${pkgs.haskell-nix.nix-tools.${compiler-nix-name}}/bin/hackage-to-nix $out 01-index.tar "https://mkHackageNix/"
           '';
 
           mkHackageFromSpec = extraHackagePackages: rec {
@@ -104,27 +107,31 @@
 
           mkHackage = srcs: mkHackageFromSpec (map mkPackageSpec srcs);
 
-          # # equivalent extraPackages:
-          # extraPackages = {
+          # # equivalent extraSources:
+          # extraSources = [{
           #   mydep.src = ./mydep;
           #   mydep.subdirs = [ "." ];
-          # };
+          # }];
 
           # Usage:
           myhackage = mkHackage [ ./mydep ];
-          myapp = final.haskell-nix.project {
+          myapp = final.haskell-nix.cabalProject' {
             src = ./myapp;
             inherit compiler-nix-name index-state;
 
             extra-hackages = [ (import myhackage.hackageNix) ];
             extra-hackage-tarballs = { myhackage = myhackage.hackageTarball; };
             modules = [ myhackage.module ];
+
+            shell.exactDeps = true;
+            shell.tools = { cabal-install = { }; };
           };
         };
         overlays = [ haskell-nix.overlay overlay ];
       in
       {
         packages.default = (pkgs.myapp.flake { }).packages."myapp:exe:myapp";
+        devShells.default = (pkgs.myapp.flake { }).devShell;
 
         # export
         inherit (pkgs) mkPackageSpec mkPackageTarball mkHackageDir mkHackageTarballFromDirs mkHackageTarball mkHackageNix mkHackageFromSpec mkHackage;
