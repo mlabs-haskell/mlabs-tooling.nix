@@ -23,7 +23,7 @@
               cabalPath =
                 if length cabalFiles == 1
                 then src + "/${head cabalFiles}"
-                else buitins.abort "Could not find unique file with .cabal suffix in source: ${src}";
+                else builtins.abort "Could not find unique file with .cabal suffix in source: ${src}";
               cabalFile = builtins.readFile cabalPath;
               parse = field:
                 let
