@@ -113,7 +113,12 @@
           ${(pkgsFor system).haskell-nix.nix-tools.${compiler-nix-name}}/bin/hackage-to-nix $out 01-index.tar "https://mkHackageNix/"
         '';
 
+      mkExtraHackagesFor = system: compiler-nix-name: extra-hackage-tarballs: map
+        (tarball: import (mkHackageNixFor system compiler-nix-name tarball))
+        (lib.attrValues extra-hackage-tarballs);
+
       mkModuleFor = system: extraHackagePackages: {
+        # Prevent nix-build from trying to download the packages
         packages = lib.listToAttrs (map
           (spec: {
             name = spec.pname;
@@ -125,18 +130,12 @@
       mkHackageFromSpecFor = system: compiler-nix-name: extraHackagePackages: rec {
         extra-hackage-tarball = mkHackageTarballFor system extraHackagePackages;
         extra-hackage = mkHackageNixFor system compiler-nix-name extra-hackage-tarball;
-        # Prevent nix-build from trying to download the package
         module = mkModuleFor system extraHackagePackages;
       };
 
       mkHackagesFromSpecFor = system: compiler-nix-name: extraHackagePackages: rec {
         extra-hackage-tarballs = mkHackageTarballsFor system extraHackagePackages;
-        extra-hackages =
-          (map
-            (tarball:
-              import (mkHackageNixFor system compiler-nix-name tarball))
-            (lib.attrValues extra-hackage-tarballs));
-        # Prevent nix-build from trying to download the package
+        extra-hackages = mkExtraHackagesFor system compiler-nix-name extra-hackage-tarballs;
         modules = [ (mkModuleFor system extraHackagePackages) ];
       };
 
