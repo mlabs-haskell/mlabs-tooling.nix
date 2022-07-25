@@ -188,14 +188,18 @@
         default = ((pkgsFor system).myapp.flake { }).devShell;
       });
 
+      checks = perSystem (system: {
+        default = self.packages.${system}.default;
+      });
+
       # export
       inherit mkPackageSpec mkPackageTarballFor mkHackageDirFor mkHackageTarballFromDirsFor mkHackageTarballFor mkHackageNixFor mkHackageFromSpecFor mkHackagesFromSpecFor mkHackageFor mkHackagesFor;
+      overlay = perSystem overlayFor;
 
       # for debugging
       myapp = perSystem (system: (pkgsFor system).myapp);
       haskell-nix = perSystem (system: (pkgsFor system).haskell-nix);
       myHackages = perSystem (system: (pkgsFor system).myHackages);
 
-      overlay = perSystem overlayFor;
     };
 }
