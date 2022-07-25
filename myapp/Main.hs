@@ -1,3 +1,5 @@
+import MyDep (mydep)
+
 main :: IO ()
 main =
-    putStrLn "Hello, World!"
+    if mydep == () then putStrLn "Hello, World!" else return ()
