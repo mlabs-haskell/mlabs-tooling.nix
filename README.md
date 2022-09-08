@@ -4,7 +4,7 @@ A flake that provides everything necessary to set up a project within our scopes
 
 ## Motivation
 
-Within MLabs we have a wide variety of projects that each depend on libraries that often are open source. There has been a decoupling between the downstream users and the library maintainers and between the different downstream usres which impose some very serious issues that are endangering the success for certain projects and ultimately MLabs itself. 
+Within MLabs we have a wide variety of projects that each depend on libraries that often are open source. There has been a decoupling between the downstream users and the library maintainers and between the different downstream users which impose some very serious issues that are endangering the success for certain projects and ultimately MLabs itself. 
 
 ### Breaking changes 
 
