@@ -8,12 +8,12 @@ if test "x$1" = "xcheck"
 then
 	fourmolu_mode="check"
 	cabalfmt_mode="-c"
-	nixpkgsfmt_mode="--check"
+	alejandra_mode="--check"
 	echo check
 else
 	fourmolu_mode="inplace"
 	cabalfmt_mode="-i"
-	nixpkgsfmt_mode=""
+	alejandra_mode=""
 	echo nocheck
 fi
 
@@ -35,4 +35,4 @@ find -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*' | xargs 
 		--newlines-between-decls 1
 find -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*'
 find -type f -name '*.cabal' | xargs cabal-fmt "$cabalfmt_mode"
-nixpkgs-fmt $nixpkgsfmt_mode *.nix
+alejandra $alejandra_mode *.nix

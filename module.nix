@@ -5,7 +5,6 @@ let
   # https://github.com/input-output-hk/haskell.nix/issues/1177
   nonReinstallablePkgs = [
     "array"
-    "array"
     "base"
     "binary"
     "bytestring"
@@ -46,22 +45,38 @@ let
     "Win32"
     "xhtml"
   ];
+  brokenLibs =
+    let
+      responseFile = builtins.toFile "response-file" ''
+        --optghc=-XFlexibleContexts
+        --optghc=-Wwarn
+        --optghc=-fplugin-opt=PlutusTx.Plugin:defer-errors
+      '';
+      l = [
+        "cardano-binary"
+        "cardano-crypto-class"
+        "cardano-crypto-praos"
+        "cardano-prelude"
+        "heapwords"
+        "measures"
+        "strict-containers"
+        "cardano-ledger-byron"
+        "cardano-slotting"
+      ];
+    in builtins.listToAttrs (builtins.map (name: {
+      inherit name;
+      value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
+      value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
+      value.components.library.extraSrcFiles = [ responseFile ];
+    }) l);
   module = { config, pkgs, hsPkgs, ... }: {
+    contentAddressed = true;
     inherit nonReinstallablePkgs; # Needed for a lot of different things
     packages = {
-      cardano-binary.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-binary.ghcOptions = [ "-Wwarn" ];
-      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
-      cardano-crypto-class.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-crypto-class.ghcOptions = [ "-Wwarn" ];
-      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
+      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
+      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
       plutus-simple-model.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-prelude.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-prelude.ghcOptions = [ "-Wwarn" ];
-      # setting ghcOptions doesn't work for some reason?
-      measures.components.library.configureFlags = [ "--ghc-options=-XFlexibleContexts" "--ghc-options=-Wwarn" ];
-      measures.components.library.setupHaddockFlags = [ "--help" ];
-    };
+    } // brokenLibs;
   };
 in
 {
@@ -117,16 +132,30 @@ in
     '';
     cabalProjectLocal = ''
       allow-newer:
-        *:base
+          *:base
+        , *:aeson
         , canonical-json:bytestring
         , plutus-core:ral
         , plutus-core:some
         , inline-r:singletons
+        , serialise:vector
+        , monoidal-containers:lens
+        , *:text
+
+      constraints:
+        text >= 2
+        , aeson >= 2
+
+      source-repository-package
+        type: git
+        location: https://github.com/haskell/bytestring
+        tag: 6299fe0ee387a3c0929105f1a19c8467ecbd1c03
     '';
+    sha256map."https://github.com/haskell/bytestring"."6299fe0ee387a3c0929105f1a19c8467ecbd1c03" = "joZP+TAhs4c4nJU59/wXsCLg1jGyB5AX1axKSZzaNDk=";
     compiler-nix-name = lib.mkDefault inputs.self.default-ghc;
     modules = [ module ];
     shell = {
-      withHoogle = lib.mkOverride 999 true;
+      withHoogle = lib.mkOverride 999 false; # FIXME set to true
       exactDeps = lib.mkOverride 999 true;
       tools.haskell-language-server = {};
       # We use the ones from Nixpkgs, since they are cached reliably.

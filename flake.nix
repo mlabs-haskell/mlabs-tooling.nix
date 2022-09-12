@@ -2,15 +2,19 @@
   description = "plutarch";
 
   nixConfig = {
-    extra-experimental-features = [ "nix-command" "flakes" ];
+    # We don't use Recursive Nix yet.
+    extra-experimental-features = [ "nix-command" "flakes" "ca-derivations" "recursive-nix" ];
     extra-substituters = ["https://cache.iog.io" "https://public-plutonomicon.cachix.org" "https://mlabs.cachix.org"];
     extra-trusted-public-keys = ["hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" "public-plutonomicon.cachix.org-1:3AKJMhCLn32gri1drGuaZmFrmnue+KkKrhhubQk/CWc="];
     allow-import-from-derivation = "true";
     bash-prompt = "\\[\\e[0m\\][\\[\\e[0;2m\\]nix \\[\\e[0;1m\\]mlabs \\[\\e[0;93m\\]\\w\\[\\e[0m\\]]\\[\\e[0m\\]$ \\[\\e[0m\\]";
+    cores = "1";
+    max-jobs = "auto";
+    auto-optimise-store = "true";
   };
 
   inputs = {
-    haskell-nix.url = "github:input-output-hk/haskell.nix?rev=fe82685f4d80240034a57b99365379a9b0557d8d";
+    haskell-nix.url = "github:input-output-hk/haskell.nix";
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
 
     iohk-nix.url = "github:input-output-hk/iohk-nix";
@@ -26,6 +30,8 @@
     cardano-crypto.flake = false;
     cardano-ledger.url = "github:input-output-hk/cardano-ledger";
     cardano-ledger.flake = false;
+    bytestring.url = "github:haskell/bytestring";
+    bytestring.flake = false;
     # haskell-language-server.url = "github:haskell/haskell-language-server";
     # haskell-language-server.flake = false;
 
@@ -83,7 +89,7 @@
     formatter = system: with (pkgsFor system); writeShellApplication {
       name = ",format";
       runtimeInputs = [
-        nixpkgs-fmt
+        alejandra
         haskellPackages.cabal-fmt
         (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_1_0)
       ];
