@@ -11,7 +11,7 @@
 
   inputs = {
     haskell-nix.url = "github:input-output-hk/haskell.nix?rev=fe82685f4d80240034a57b99365379a9b0557d8d";
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=a0a69be4b5ee63f1b5e75887a406e9194012b492";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
 
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false;
@@ -85,7 +85,7 @@
       runtimeInputs = [
         nixpkgs-fmt
         haskellPackages.cabal-fmt
-        haskell.packages.ghc924.fourmolu_0_8_0_0
+        (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_1_0)
       ];
       text = builtins.readFile ./format.sh;
     };

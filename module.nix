@@ -58,6 +58,9 @@ let
       plutus-simple-model.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
       cardano-prelude.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
       cardano-prelude.ghcOptions = [ "-Wwarn" ];
+      # setting ghcOptions doesn't work for some reason?
+      measures.components.library.configureFlags = [ "--ghc-options=-XFlexibleContexts" "--ghc-options=-Wwarn" ];
+      measures.components.library.setupHaddockFlags = [ "--help" ];
     };
   };
 in
@@ -130,11 +133,7 @@ in
       # Eventually we will probably want to build these with haskell.nix.
       nativeBuildInputs = [
         pkgs'.cabal-install
-        pkgs'.hlint
-        pkgs'.haskellPackages.cabal-fmt
-        pkgs'.haskell.packages.ghc924.fourmolu_0_8_0_0
-        pkgs'.nixpkgs-fmt
-        (inputs.self.formatter pkgs.system)
+        # (inputs.self.formatter pkgs.system)
       ];
     };
   };

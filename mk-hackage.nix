@@ -114,6 +114,8 @@ in
 { lib, config, pkgs, haskellLib, ... }:
 let
   theHackages = builtins.map ((mylib { inherit pkgs; compiler-nix-name = default-ghc; }).mkHackageFor) config.extraHackages;
+  ifd-parallel = pkgs.runCommandNoCC "ifd-parallel" { myInputs = builtins.foldl' (b: a: b ++ [a.extra-hackage a.extra-hackage-tarball]) [] theHackages; } "echo $myInputs > $out";
+  ifdseq = x: builtins.seq (builtins.readFile ifd-parallel.outPath) x;
   nlib = inputs.nixpkgs.lib;
 in {
   _file = "mlabs-tooling.nix/mk-hackage.nix";
@@ -125,14 +127,14 @@ in {
     };
   };
   config = {
-    modules = builtins.map (x: x.module) theHackages;
-    extra-hackage-tarballs =
+    modules = ifdseq (builtins.map (x: x.module) theHackages);
+    extra-hackage-tarballs = ifdseq (
       nlib.listToAttrs (nlib.imap0
         (i: x: {
           name = "_" + builtins.toString i;
           value = x.extra-hackage-tarball;
         })
-        theHackages);
-    extra-hackages = builtins.map (x: x.extra-hackage) theHackages;
+        theHackages));
+    extra-hackages = ifdseq (builtins.map (x: import x.extra-hackage) theHackages);
   };
 }

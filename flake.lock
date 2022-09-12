@@ -115,6 +115,23 @@
         "type": "github"
       }
     },
+    "cardano-prelude": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1653997332,
+        "narHash": "sha256-E+YSfUsvxdoOr7n7fz4xd7zb4z8XBRGNYOKipc2A1pw=",
+        "owner": "mlabs-haskell",
+        "repo": "cardano-prelude",
+        "rev": "713c7ae79a4d538fcd653c976a652913df1567b9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mlabs-haskell",
+        "repo": "cardano-prelude",
+        "rev": "713c7ae79a4d538fcd653c976a652913df1567b9",
+        "type": "github"
+      }
+    },
     "cardano-repo-tool": {
       "flake": false,
       "locked": {
@@ -552,17 +569,17 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1653918805,
-        "narHash": "sha256-6ahwAnBNGgqSNSn/6RnsxrlFi+fkA+RyT6o/5S1915o=",
+        "lastModified": 1662019588,
+        "narHash": "sha256-oPEjHKGGVbBXqwwL+UjsveJzghWiWV0n9ogo1X6l4cw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "a0a69be4b5ee63f1b5e75887a406e9194012b492",
+        "rev": "2da64a81275b68fdad38af669afeda43d401e94b",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
-        "rev": "a0a69be4b5ee63f1b5e75887a406e9194012b492",
         "type": "github"
       }
     },
@@ -647,6 +664,7 @@
         "cardano-base": "cardano-base",
         "cardano-crypto": "cardano-crypto",
         "cardano-ledger": "cardano-ledger",
+        "cardano-prelude": "cardano-prelude",
         "flat": "flat",
         "haskell-nix": "haskell-nix",
         "iohk-nix": "iohk-nix",
