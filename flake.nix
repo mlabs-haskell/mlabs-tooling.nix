@@ -16,28 +16,10 @@
   inputs = {
     haskell-nix.url = "github:input-output-hk/haskell.nix";
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-
+    ghc-next-packages.url = "github:input-output-hk/ghc-next-packages?ref=repo";
+    ghc-next-packages.flake = false;
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false;
-    # we use sphinxcontrib-haddock input
-    plutus.url = "github:input-output-hk/plutus";
-    # https://github.com/input-output-hk/cardano-prelude/pull/163
-    cardano-prelude.url = "github:mlabs-haskell/cardano-prelude?rev=713c7ae79a4d538fcd653c976a652913df1567b9";
-    cardano-prelude.flake = false;
-    cardano-base.url = "github:input-output-hk/cardano-base";
-    cardano-base.flake = false;
-    cardano-crypto.url = "github:input-output-hk/cardano-crypto";
-    cardano-crypto.flake = false;
-    cardano-ledger.url = "github:input-output-hk/cardano-ledger";
-    cardano-ledger.flake = false;
-    bytestring.url = "github:haskell/bytestring";
-    bytestring.flake = false;
-    # haskell-language-server.url = "github:haskell/haskell-language-server";
-    # haskell-language-server.flake = false;
-
-    # 0.4.5 hasn't been published to Hackage...
-    flat.url = "github:Quid2/flat";
-    flat.flake = false;
   };
 
   outputs = inputs@{ self, nixpkgs, iohk-nix, haskell-nix,  ... }: rec {
@@ -52,7 +34,6 @@
     pkgsFor = system: import nixpkgs { inherit system; };
 
     default-ghc = "ghc924";
-
 
     /*
     hlsFor' = compiler-nix-name: pkgs:
@@ -84,7 +65,7 @@
       (import ./mk-hackage.nix { inherit inputs; })
     ];
 
-    mkHaskellProject = system: args: (hnFor system).cabalProject' (modules ++ [args]);
+    mkHaskellProject = system: project: (hnFor system).cabalProject' (modules ++ [project]);
 
     formatter = system: with (pkgsFor system); writeShellApplication {
       name = ",format";
@@ -125,5 +106,10 @@
         herculesCI.ciSystems = [ "x86_64-linux" ];
         project = perSystem prjFor;
       };
+
+    templates.default = {
+      path = ./templates/haskell;
+      description = "A haskell.nix project";
+    };
   };
 }

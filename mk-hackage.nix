@@ -1,6 +1,5 @@
 { inputs }:
 let
-  inherit (inputs.self) default-ghc;
   mylib = { pkgs, compiler-nix-name }: rec {
     mkPackageSpec = src:
       with pkgs.lib;
@@ -114,23 +113,23 @@ in
 
 { lib, config, pkgs, haskellLib, ... }:
 let
-  theHackages = builtins.map ((mylib { inherit pkgs; compiler-nix-name = default-ghc; }).mkHackageFor) config.extraHackages;
+  l = mylib { inherit pkgs; compiler-nix-name = inputs.self.default-ghc; };
+  # FIXME: We have only one Hackage now
+  # FIXME: Do copySrc here, but for some reason Nix shits itself
+  theHackages = [ (l.mkHackageFor config.extraHackage) ];
   ifd-parallel = pkgs.runCommandNoCC "ifd-parallel" { myInputs = builtins.foldl' (b: a: b ++ [a.extra-hackage a.extra-hackage-tarball]) [] theHackages; } "echo $myInputs > $out";
   ifdseq = x: builtins.seq (builtins.readFile ifd-parallel.outPath) x;
   nlib = inputs.nixpkgs.lib;
 in {
   _file = "mlabs-tooling.nix/mk-hackage.nix";
   options = with lib.types; {
-    extraHackages = lib.mkOption {
-      type = listOf (listOf str); # FIXME: Allow passing in a tuple of the src and cabal file instead.
+    extraHackage = lib.mkOption {
+      type = listOf str; # FIXME: Allow passing in a tuple of the src and cabal file instead.
       default = [];
       description = "List of paths to cabal projects to include as extra hackages";
     };
-    debug = lib.mkOption {
-      type = unspecified;
-    };
   };
-  config = {
+  config = lib.mkIf (config.extraHackage != []) {
     modules = ifdseq (builtins.map (x: x.module) theHackages);
     extra-hackage-tarballs = ifdseq (
       nlib.listToAttrs (nlib.imap0
@@ -140,6 +139,5 @@ in {
         })
         theHackages));
     extra-hackages = ifdseq (builtins.map (x: import x.extra-hackage) theHackages);
-    debug = theHackages;
   };
 }
