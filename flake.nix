@@ -72,7 +72,7 @@
       runtimeInputs = [
         alejandra
         haskellPackages.cabal-fmt
-        (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_1_0)
+        (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
       ];
       text = builtins.readFile ./format.sh;
     };
