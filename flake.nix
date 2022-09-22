@@ -111,7 +111,7 @@
             apps = builtins.mapAttrs (_: a: a.program) self.apps.x86_64-linux;
           };
         };
-      in self
+      in self;
 
     templates.default = {
       path = ./templates/haskell;
