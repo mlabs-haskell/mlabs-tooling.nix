@@ -137,6 +137,17 @@ in
         (inputs.self.formatter pkgs.system)
         (inputs.self.linter pkgs.system)
       ];
+      shellHook = ''
+        set -x
+        if test -e .git/hooks
+        then
+          test -e .git/hooks/pre-commit || (
+            echo -e '#!/bin/sh\n\n,format check' > .git/hooks/pre-commit \
+              && chmod +x .git/hooks/pre-commit
+          )
+        fi
+        set +x
+      '';
     };
   };
 }
