@@ -29,7 +29,10 @@
 
     hnFor = system: (import haskell-nix.inputs.nixpkgs {
       inherit system;
-      overlays = [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
+      overlays = [
+        haskell-nix.overlay
+        (import "${iohk-nix}/overlays/crypto")
+      ];
     }).haskell-nix;
     pkgsFor = system: import nixpkgs { inherit system; };
 
@@ -117,5 +120,7 @@
       path = ./templates/haskell;
       description = "A haskell.nix project";
     };
+
+    inherit (mkHaskellFlake1 { project.src = ./templates/haskell; }) hydraJobs;
   };
 }

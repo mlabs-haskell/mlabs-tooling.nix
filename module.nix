@@ -45,7 +45,7 @@ let
     "Win32"
     "xhtml"
   ];
-  brokenLibs =
+  brokenLibsModule =
     let
       responseFile = builtins.toFile "response-file" ''
         --optghc=-XFlexibleContexts
@@ -63,20 +63,24 @@ let
         "cardano-ledger-byron"
         "cardano-slotting"
       ];
-    in builtins.listToAttrs (builtins.map (name: {
-      inherit name;
-      value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
-      value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
-      value.components.library.extraSrcFiles = [ responseFile ];
-    }) l);
+    in {
+      _file = "mlabs-tooling.nix/module.nix:brokenLibsModule";
+      packages = builtins.listToAttrs (builtins.map (name: {
+        inherit name;
+        value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
+        value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
+        value.components.library.extraSrcFiles = [ responseFile ];
+      }) l);
+    };
   module = { config, pkgs, hsPkgs, ... }: {
+    _file = "mlabs-tooling.nix/module.nix:module";
     contentAddressed = true;
     inherit nonReinstallablePkgs; # Needed for a lot of different things
     packages = {
-      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
-      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
+      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf pkgs.secp256k1 ]];
+      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf ]];
       plutus-simple-model.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-    } // brokenLibs;
+    };
   };
 in
 {
@@ -120,7 +124,7 @@ in
         , protolude >= 0.3.2
     '';
     compiler-nix-name = lib.mkDefault inputs.self.default-ghc;
-    modules = [ module ];
+    modules = [ module brokenLibsModule ];
     inputMap."https://input-output-hk.github.io/ghc-next-packages" = "${inputs.ghc-next-packages}";
     shell = {
       withHoogle = lib.mkOverride 999 false; # FIXME set to true
