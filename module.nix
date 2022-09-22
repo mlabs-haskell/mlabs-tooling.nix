@@ -134,7 +134,7 @@ in
       # Eventually we will probably want to build these with haskell.nix.
       nativeBuildInputs = [
         pkgs'.cabal-install
-        # (inputs.self.formatter pkgs.system)
+        (inputs.self.formatter pkgs.system)
       ];
     };
   };

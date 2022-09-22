@@ -38,31 +38,6 @@
 
     default-ghc = "ghc924";
 
-    /*
-    hlsFor' = compiler-nix-name: pkgs:
-      pkgs.haskell-nix.cabalProject' {
-        modules = [{
-          inherit nonReinstallablePkgs;
-          reinstallableLibGhc = false;
-        }];
-        inherit compiler-nix-name;
-        src = "${inputs.haskell-language-server}";
-        sha256map."https://github.com/pepeiborra/ekg-json"."7a0af7a8fd38045fd15fb13445bdcc7085325460" = "fVwKxGgM0S4Kv/4egVAAiAjV7QB5PBqMVMCfsv7otIQ=";
-      };
-    hlsFor = compiler-nix-name: system:
-      let
-        pkgs = pkgsFor system;
-        oldGhc = "8107";
-      in
-      if (compiler-nix-name == "ghc${oldGhc}") then
-        pkgs.haskell-language-server.override
-          {
-            supportedGhcVersions = [ oldGhc ];
-          }
-      else
-        (hlsFor' compiler-nix-name pkgs).hsPkgs.haskell-language-server.components.exes.haskell-language-server;
-    */
-
     modules = [
       (import ./module.nix { inherit inputs; })
       (import ./mk-hackage.nix { inherit inputs; })
@@ -73,7 +48,7 @@
     formatter = system: with (pkgsFor system); writeShellApplication {
       name = ",format";
       runtimeInputs = [
-        alejandra
+        nixpkgs-fmt
         haskellPackages.cabal-fmt
         (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
       ];
