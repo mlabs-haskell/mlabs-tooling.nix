@@ -90,22 +90,28 @@
         );
         formatting = system: (pkgsFor system).runCommandNoCC "formatting-check"
           {
-            nativeBuildInputs = [ formatter system ];
+            nativeBuildInputs = [ (formatter system) ];
           }
           ''
             cd ${project.src}
             ,format check
             touch $out
           '';
-      in
-      {
-        packages = mk "packages";
-        checks = mk "checks" // perSystem (system: { formatting = formatting system; });
-        apps = mk "apps" // perSystem (system: { format.type = "app"; format.program = "${formatter system}/bin/,format"; });
-        devShells = perSystem (system: { default = (flkFor system).devShell; });
-        herculesCI.ciSystems = [ "x86_64-linux" ];
-        project = perSystem prjFor;
-      };
+        self = {
+          packages = mk "packages";
+          checks = mk "checks" // perSystem (system: { formatting = formatting system; });
+          apps = mk "apps" // perSystem (system: { format.type = "app"; format.program = "${formatter system}/bin/,format"; });
+          devShells = perSystem (system: { default = (flkFor system).devShell; });
+          herculesCI.ciSystems = [ "x86_64-linux" ];
+          project = perSystem prjFor;
+          hydraJobs = {
+            packages = self.packages.x86_64-linux;
+            checks = self.checks.x86_64-linux;
+            devShells = self.devShells.x86_64-linux;
+            apps = builtins.mapAttrs (_: a: a.program) self.apps.x86_64-linux;
+          };
+        };
+      in self
 
     templates.default = {
       path = ./templates/haskell;
