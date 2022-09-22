@@ -55,6 +55,19 @@
       text = builtins.readFile ./format.sh;
     };
 
+    linter = system: with (pkgsFor system); writeShellApplication {
+      name = ",lint";
+      runtimeInputs = [
+        (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
+      ];
+      # stupid unnecessary IFD
+      text = builtins.readFile (pkgs.substituteAll {
+        name = "substituted-lint.sh";
+        src = ./lint.sh;
+        hlint_config = ./hlint.yaml;
+      }).outPath;
+    };
+
     # versioned
     mkHaskellFlake1 =
       { project
@@ -75,10 +88,25 @@
             ,format check
             touch $out
           '';
+        linting = system: (pkgsFor system).runCommandNoCC "linting-check"
+          {
+            nativeBuildInputs = [ (linter system) ];
+          }
+          ''
+            cd ${project.src}
+            ,lint
+            touch $out
+          '';
         self = {
           packages = mk "packages";
-          checks = mk "checks" // perSystem (system: { formatting = formatting system; });
-          apps = mk "apps" // perSystem (system: { format.type = "app"; format.program = "${formatter system}/bin/,format"; });
+          checks = mk "checks" // perSystem (system: {
+            formatting = formatting system;
+            linting = linting system;
+          });
+          apps = mk "apps" // perSystem (system: {
+            format.type = "app"; format.program = "${formatter system}/bin/,format";
+            lint.type = "app"; lint.program = "${linter system}/bin/,lint";
+          });
           devShells = perSystem (system: { default = (flkFor system).devShell; });
           herculesCI.ciSystems = [ "x86_64-linux" ];
           project = perSystem prjFor;

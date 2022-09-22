@@ -135,6 +135,7 @@ in
       nativeBuildInputs = [
         pkgs'.cabal-install
         (inputs.self.formatter pkgs.system)
+        (inputs.self.linter pkgs.system)
       ];
     };
   };
