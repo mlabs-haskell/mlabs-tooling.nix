@@ -20,9 +20,11 @@
     ghc-next-packages.flake = false;
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false;
+    emanote.url = "github:srid/emanote/master";
+    emanote.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, nixpkgs, iohk-nix, haskell-nix,  ... }: rec {
+  outputs = inputs@{ self, emanote, nixpkgs, iohk-nix, haskell-nix,  ... }: rec {
     supportedSystems = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
 
     perSystem = nixpkgs.lib.genAttrs supportedSystems;
@@ -34,6 +36,7 @@
         (import "${iohk-nix}/overlays/crypto")
       ];
     }).haskell-nix;
+
     pkgsFor = system: import nixpkgs { inherit system; };
 
     default-ghc = "ghc924";
@@ -42,6 +45,25 @@
       (import ./module.nix { inherit inputs; })
       (import ./mk-hackage.nix { inherit inputs; })
     ];
+
+    mkDocumentation = path: system:
+      let
+        pkgs = pkgsFor system;
+        configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
+          template.baseUrl = "/documentation";
+        };
+        configDir = pkgs.runCommand "emanote-configDir" { } ''
+          mkdir -p $out
+          cp ${configFile} $out/index.yaml
+        '';
+      in
+      pkgs.runCommand "emanote-docs" { }
+        ''
+          mkdir $out
+          ${inputs.emanote.defaultPackage.${system}}/bin/emanote \
+            --layers "${path};${configDir}" \
+            gen $out
+        '';
 
     mkHaskellProject = system: project: (hnFor system).cabalProject' (modules ++ [project]);
 
@@ -71,14 +93,15 @@
     # versioned
     mkHaskellFlake1 =
       { project
+      , docsPath ? null
       }:
       let
         prjFor = system: mkHaskellProject system project;
         flkFor = system: (prjFor system).flake {};
-        mk = attr: perSystem (system:
+        mk = attr: system:
           let a = (flkFor system).${attr}; in
           { default = builtins.head (builtins.attrValues a); } // a
-        );
+        ;
         formatting = system: (pkgsFor system).runCommandNoCC "formatting-check"
           {
             nativeBuildInputs = [ (formatter system) ];
@@ -98,12 +121,25 @@
             touch $out
           '';
         self = {
-          packages = mk "packages";
-          checks = mk "checks" // perSystem (system: {
+          packages = perSystem (system: mk "packages" system // (if docsPath == null then {} else {
+            docs = mkDocumentation docsPath system;
+          }) // {
+            haddock = inputs.plutus.${system}.toolchain.library.combine-haddock {
+              ghc = inputs.plutus.${system}.plutus.packages.ghc;
+              hspkgs = builtins.map (x: x.components.library) (builtins.filter (x: x ? components.library) (prjFor system).hsPkgs);
+              prologue = (pkgsFor system).writeTextFile {
+                name = "prologue";
+                text = ''
+                  == Haddock documentation made through mlabs-tooling.nix
+                '';
+              };
+            };
+          });
+          checks = perSystem (system: mk "checks" system // {
             formatting = formatting system;
             linting = linting system;
           });
-          apps = mk "apps" // perSystem (system: {
+          apps = perSystem (system: mk "apps" // {
             format.type = "app"; format.program = "${formatter system}/bin/,format";
             lint.type = "app"; lint.program = "${linter system}/bin/,lint";
           });
