@@ -86,10 +86,6 @@ in
 {
   _file = "mlabs-tooling.nix/module.nix";
   config = {
-    # FIXME: Remove once https://github.com/input-output-hk/haskell.nix/pull/1588 is merged
-    cabalProject = lib.mkOverride 1100 ''
-      packages: .
-    '';
     cabalProjectLocal = ''
       repository ghc-next-packages
         url: https://input-output-hk.github.io/ghc-next-packages
@@ -139,12 +135,10 @@ in
       ];
       shellHook = ''
         set -x
-        if test -e .git/hooks
+        if test ! -e .git/hooks/pre-commit
         then
-          test -e .git/hooks/pre-commit || (
-            echo -e '#!/bin/sh\n\n,format check' > .git/hooks/pre-commit \
-              && chmod +x .git/hooks/pre-commit
-          )
+          echo -e '#!/bin/sh\n\n,format check' > .git/hooks/pre-commit \
+            && chmod +x .git/hooks/pre-commit
         fi
         set +x
       '';

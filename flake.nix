@@ -22,6 +22,7 @@
     iohk-nix.flake = false;
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
+    plutus.url = "github:input-output-hk/plutus?dir=__std__";
   };
 
   outputs = inputs@{ self, emanote, nixpkgs, iohk-nix, haskell-nix,  ... }: rec {
@@ -29,15 +30,15 @@
 
     perSystem = nixpkgs.lib.genAttrs supportedSystems;
 
-    hnFor = system: (import haskell-nix.inputs.nixpkgs {
+    hnFor = perSystem (system: (import haskell-nix.inputs.nixpkgs {
       inherit system;
       overlays = [
         haskell-nix.overlay
         (import "${iohk-nix}/overlays/crypto")
       ];
-    }).haskell-nix;
+    }).haskell-nix);
 
-    pkgsFor = system: import nixpkgs { inherit system; };
+    pkgsFor = perSystem (system: import nixpkgs { inherit system; });
 
     default-ghc = "ghc924";
 
@@ -48,7 +49,7 @@
 
     mkDocumentation = path: system:
       let
-        pkgs = pkgsFor system;
+        pkgs = pkgsFor.${system};
         configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
           template.baseUrl = "/documentation";
         };
@@ -65,9 +66,9 @@
             gen $out
         '';
 
-    mkHaskellProject = system: project: (hnFor system).cabalProject' (modules ++ [project]);
+    mkHaskellProject = system: project: hnFor.${system}.cabalProject' (modules ++ [project]);
 
-    formatter = system: with (pkgsFor system); writeShellApplication {
+    formatter = system: with pkgsFor.${system}; writeShellApplication {
       name = ",format";
       runtimeInputs = [
         nixpkgs-fmt
@@ -77,7 +78,7 @@
       text = builtins.readFile ./format.sh;
     };
 
-    linter = system: with (pkgsFor system); writeShellApplication {
+    linter = system: with pkgsFor.${system}; writeShellApplication {
       name = ",lint";
       runtimeInputs = [
         (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
@@ -90,33 +91,36 @@
       }).outPath;
     };
 
+    brokenHaddock = [ "pretty-show" ];
+
     # versioned
     mkHaskellFlake1 =
       { project
       , docsPath ? null
+      , toHaddock ? []
       }:
       let
-        prjFor = system: mkHaskellProject system project;
-        flkFor = system: (prjFor system).flake {};
+        projectFor = perSystem (system: mkHaskellProject system project);
+        flkFor = perSystem (system: projectFor.${system}.flake {});
         mk = attr: system:
-          let a = (flkFor system).${attr}; in
+          let a = flkFor.${system}.${attr}; in
           { default = builtins.head (builtins.attrValues a); } // a
         ;
-        formatting = system: (pkgsFor system).runCommandNoCC "formatting-check"
+        formatting = system: pkgsFor.${system}.runCommandNoCC "formatting-check"
           {
             nativeBuildInputs = [ (formatter system) ];
           }
           ''
-            cd ${project.src}
+            cd ${projectFor.src}
             ,format check
             touch $out
           '';
-        linting = system: (pkgsFor system).runCommandNoCC "linting-check"
+        linting = system: pkgsFor.${system}.runCommandNoCC "linting-check"
           {
             nativeBuildInputs = [ (linter system) ];
           }
           ''
-            cd ${project.src}
+            cd ${projectFor.src}
             ,lint
             touch $out
           '';
@@ -126,8 +130,14 @@
           }) // {
             haddock = inputs.plutus.${system}.toolchain.library.combine-haddock {
               ghc = inputs.plutus.${system}.plutus.packages.ghc;
-              hspkgs = builtins.map (x: x.components.library) (builtins.filter (x: x ? components.library) (prjFor system).hsPkgs);
-              prologue = (pkgsFor system).writeTextFile {
+              hspkgs = builtins.map (x: projectFor.${system}.hsPkgs.${x}.components.library) toHaddock;
+              # This doesn't work for some reason, everything breaks, probably because of CA
+              # builtins.map (x: x.components.library) (
+              #   builtins.filter (x: x ? components.library) (
+              #     builtins.attrValues (projectFor system).hsPkgs
+              #   )
+              # );
+              prologue = pkgsFor.${system}.writeTextFile {
                 name = "prologue";
                 text = ''
                   == Haddock documentation made through mlabs-tooling.nix
@@ -143,9 +153,9 @@
             format.type = "app"; format.program = "${formatter system}/bin/,format";
             lint.type = "app"; lint.program = "${linter system}/bin/,lint";
           });
-          devShells = perSystem (system: { default = (flkFor system).devShell; });
+          devShells = perSystem (system: { default = flkFor.${system}.devShell; });
           herculesCI.ciSystems = [ "x86_64-linux" ];
-          project = perSystem prjFor;
+          project = projectFor;
           hydraJobs = {
             packages = self.packages.x86_64-linux;
             checks = self.checks.x86_64-linux;
