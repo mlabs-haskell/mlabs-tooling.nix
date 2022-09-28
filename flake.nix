@@ -23,153 +23,180 @@
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
     plutus.url = "github:input-output-hk/plutus?dir=__std__";
+    flake-parts.url = "github:mlabs-haskell/flake-parts?ref=fix-for-ifd";
+    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, emanote, nixpkgs, iohk-nix, haskell-nix,  ... }: rec {
-    supportedSystems = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
-
-    perSystem = nixpkgs.lib.genAttrs supportedSystems;
-
-    hnFor = perSystem (system: (import haskell-nix.inputs.nixpkgs {
-      inherit system;
-      overlays = [
-        haskell-nix.overlay
-        (import "${iohk-nix}/overlays/crypto")
-      ];
-    }).haskell-nix);
-
-    pkgsFor = perSystem (system: import nixpkgs { inherit system; });
-
-    default-ghc = "ghc924";
-
+  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, ... }:
+  let
     modules = [
       (import ./module.nix { inherit inputs; })
       (import ./mk-hackage.nix { inherit inputs; })
     ];
 
-    mkDocumentation = path: system:
-      let
-        pkgs = pkgsFor.${system};
-        configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
-          template.baseUrl = "/documentation";
-        };
-        configDir = pkgs.runCommand "emanote-configDir" { } ''
-          mkdir -p $out
-          cp ${configFile} $out/index.yaml
-        '';
-      in
-      pkgs.runCommand "emanote-docs" { }
-        ''
-          mkdir $out
-          ${inputs.emanote.defaultPackage.${system}}/bin/emanote \
-            --layers "${path};${configDir}" \
-            gen $out
-        '';
-
-    mkHaskellProject = system: project: hnFor.${system}.cabalProject' (modules ++ [project]);
-
-    formatter = system: with pkgsFor.${system}; writeShellApplication {
-      name = ",format";
-      runtimeInputs = [
-        nixpkgs-fmt
-        haskellPackages.cabal-fmt
-        (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
-      ];
-      text = builtins.readFile ./format.sh;
+    templateFlake = import ./templates/haskell/flake.nix {
+      self = templateFlake;
+      tooling = self;
     };
 
-    linter = system: with pkgsFor.${system}; writeShellApplication {
-      name = ",lint";
-      runtimeInputs = [
-        (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
-      ];
-      # stupid unnecessary IFD
-      text = builtins.readFile (pkgs.substituteAll {
-        name = "substituted-lint.sh";
-        src = ./lint.sh;
-        hlint_config = ./hlint.yaml;
-      }).outPath;
-    };
+    nlib = nixpkgs.lib;
+  in {
+    lib = {
+      # needed to avoid IFD
+      mkOpaque = x: nlib.mkOverride 100 (nlib.mkOrder 1000 x);
 
-    brokenHaddock = [ "pretty-show" ];
+      default-ghc = "ghc924";
 
-    # versioned
-    mkHaskellFlake1 =
-      { project
-      , docsPath ? null
-      , toHaddock ? []
-      }:
-      let
-        projectFor = perSystem (system: mkHaskellProject system project);
-        flkFor = perSystem (system: projectFor.${system}.flake {});
-        mk = attr: system:
-          let a = flkFor.${system}.${attr}; in
-          { default = builtins.head (builtins.attrValues a); } // a
-        ;
-        formatting = system: pkgsFor.${system}.runCommandNoCC "formatting-check"
-          {
-            nativeBuildInputs = [ (formatter system) ];
-          }
-          ''
-            cd ${projectFor.src}
-            ,format check
-            touch $out
-          '';
-        linting = system: pkgsFor.${system}.runCommandNoCC "linting-check"
-          {
-            nativeBuildInputs = [ (linter system) ];
-          }
-          ''
-            cd ${projectFor.src}
-            ,lint
-            touch $out
-          '';
-        self = {
-          packages = perSystem (system: mk "packages" system // (if docsPath == null then {} else {
-            docs = mkDocumentation docsPath system;
-          }) // {
-            haddock = inputs.plutus.${system}.toolchain.library.combine-haddock {
-              ghc = inputs.plutus.${system}.plutus.packages.ghc;
-              hspkgs = builtins.map (x: projectFor.${system}.hsPkgs.${x}.components.library) toHaddock;
-              # This doesn't work for some reason, everything breaks, probably because of CA
-              # builtins.map (x: x.components.library) (
-              #   builtins.filter (x: x ? components.library) (
-              #     builtins.attrValues (projectFor system).hsPkgs
-              #   )
-              # );
-              prologue = pkgsFor.${system}.writeTextFile {
-                name = "prologue";
-                text = ''
-                  == Haddock documentation made through mlabs-tooling.nix
-                '';
+      inherit (flake-parts.lib) mkFlake;
+      # versioned
+      mkHaskellFlakeModule1 =
+        { project
+        , docsPath ? null
+        , toHaddock ? []
+        }: escapeHatch@{ config, lib, flake-parts-lib, ... }: {
+          _file = "mlabs-tooling.nix:mkHaskellFlakeModule1";
+          options = {
+            perSystem = flake-parts-lib.mkPerSystemOption ({ config, system, ... }: {
+              options.project = lib.mkOption {
+                type = lib.types.unspecified;
               };
+            });
+            udmmdm = lib.mkOption {
+              type = lib.types.attrsOf lib.types.unspecified;
             };
-          });
-          checks = perSystem (system: mk "checks" system // {
-            formatting = formatting system;
-            linting = linting system;
-          });
-          apps = perSystem (system: mk "apps" // {
-            format.type = "app"; format.program = "${formatter system}/bin/,format";
-            lint.type = "app"; lint.program = "${linter system}/bin/,lint";
-          });
-          devShells = perSystem (system: { default = flkFor.${system}.devShell; });
-          herculesCI.ciSystems = [ "x86_64-linux" ];
-          project = projectFor;
-          hydraJobs = {
-            packages = self.packages.x86_64-linux;
-            checks = self.checks.x86_64-linux;
-            devShells = self.devShells.x86_64-linux;
-            apps = builtins.mapAttrs (_: a: a.program) self.apps.x86_64-linux;
+          };
+          config = {
+            systems = lib.mkDefault [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
+            perSystem = { system, ... }:
+            let
+              hn = (import haskell-nix.inputs.nixpkgs {
+                inherit system;
+                overlays = [
+                  haskell-nix.overlay
+                  (import "${iohk-nix}/overlays/crypto")
+                ];
+              }).haskell-nix;
+
+              prj = hn.cabalProject' (modules ++ [project]);
+              flk = prj.flake {};
+
+              mk = attr:
+                let a = flk.${attr}; in
+                { default = lib.mkDefault (builtins.head (builtins.attrValues a)); } // a;
+
+              pkgs = nixpkgs.legacyPackages.${system};
+
+              formatter =  with pkgs; writeShellApplication {
+                name = ",format";
+                runtimeInputs = [
+                  nixpkgs-fmt
+                  haskellPackages.cabal-fmt
+                  (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
+                ];
+                text = builtins.readFile ./format.sh;
+              };
+
+              formatting = pkgs.runCommandNoCC "formatting-check"
+                {
+                  nativeBuildInputs = [ (formatter system) ];
+                }
+                ''
+                  cd ${project.src}
+                  ,format check
+                  touch $out
+                '';
+
+              linter = with pkgs; writeShellApplication {
+                name = ",lint";
+                runtimeInputs = [
+                  (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
+                ];
+                # stupid unnecessary IFD
+                text = builtins.readFile (pkgs.substituteAll {
+                  name = "substituted-lint.sh";
+                  src = ./lint.sh;
+                  hlint_config = ./hlint.yaml;
+                }).outPath;
+              };
+
+              linting = pkgs.runCommandNoCC "linting-check"
+                {
+                  nativeBuildInputs = [ linter ];
+                }
+                ''
+                  cd ${project.src}
+                  ,lint
+                  touch $out
+                '';
+
+              mkDocumentation = path:
+                let
+                  configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
+                    template.baseUrl = "/documentation";
+                  };
+                  configDir = pkgs.runCommand "emanote-configDir" { } ''
+                    mkdir -p $out
+                    cp ${configFile} $out/index.yaml
+                  '';
+                in
+                pkgs.runCommand "emanote-docs" { }
+                  ''
+                    mkdir $out
+                    ${inputs.emanote.defaultPackage.${system}}/bin/emanote \
+                      --layers "${path};${configDir}" \
+                      gen $out
+                  '';
+
+            in {
+              _module.args.pkgs = inputs.nixpkgs.legacyPackages.${system};
+
+              packages = self.lib.mkOpaque (mk "packages" // (if docsPath == null then {} else {
+                docs = mkDocumentation docsPath;
+              }) // {
+                haddock = inputs.plutus.${system}.toolchain.library.combine-haddock {
+                  ghc = inputs.plutus.${system}.plutus.packages.ghc;
+                  hspkgs = builtins.map (x: prj.hsPkgs.${x}.components.library) toHaddock;
+                  # This doesn't work for some reason, everything breaks, probably because of CA
+                  # builtins.map (x: x.components.library) (
+                  #   builtins.filter (x: x ? components.library) (
+                  #     builtins.attrValues (projectFor system).hsPkgs
+                  #   )
+                  # );
+                  prologue = pkgs.writeTextFile {
+                    name = "prologue";
+                    text = ''
+                      == Haddock documentation made through mlabs-tooling.nix
+                    '';
+                  };
+                };
+              });
+              checks = self.lib.mkOpaque (mk "checks" // {
+                inherit formatting linting;
+              });
+              apps = self.lib.mkOpaque (mk "apps" // {
+                format.type = "app"; format.program = "${formatter}/bin/,format";
+                lint.type = "app"; lint.program = "${linter}/bin/,lint";
+              });
+              devShells.default = lib.mkDefault flk.devShell;
+              project = prj;
+            };
+            flake.config.hydraJobs = {
+              packages = config.packages.x86_64-linux;
+              checks = config.checks.x86_64-linux;
+              devShells = config.devShells.x86_64-linux;
+              apps = builtins.mapAttrs (_: a: a.program) config.apps.x86_64-linux;
+            };
+            flake.config.herculesCI.ciSystems = lib.mkDefault [ "x86_64-linux" ];
+            flake.config.escapeHatch = escapeHatch;
           };
         };
-      in self;
+    };
 
     templates.default = {
       path = ./templates/haskell;
       description = "A haskell.nix project";
     };
 
-    inherit (mkHaskellFlake1 { project.src = ./templates/haskell; }) hydraJobs;
+    inherit (templateFlake) hydraJobs;
   };
 }

@@ -119,7 +119,7 @@ in
         , dependent-sum >= 0.7
         , protolude >= 0.3.2
     '';
-    compiler-nix-name = lib.mkDefault inputs.self.default-ghc;
+    compiler-nix-name = lib.mkDefault inputs.self.lib.default-ghc;
     modules = [ module brokenLibsModule ];
     inputMap."https://input-output-hk.github.io/ghc-next-packages" = "${inputs.ghc-next-packages}";
     shell = {

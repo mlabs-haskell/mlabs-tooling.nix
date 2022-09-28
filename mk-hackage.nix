@@ -113,7 +113,7 @@ in
 
 { lib, config, pkgs, haskellLib, ... }:
 let
-  l = mylib { inherit pkgs; compiler-nix-name = inputs.self.default-ghc; };
+  l = mylib { inherit pkgs; compiler-nix-name = inputs.self.lib.default-ghc; };
   # FIXME: We have only one Hackage now
   # FIXME: Do copySrc here, but for some reason Nix shits itself
   theHackages = [ (l.mkHackageFor config.extraHackage) ];
