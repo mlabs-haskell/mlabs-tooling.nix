@@ -130,8 +130,8 @@ in
       # Eventually we will probably want to build these with haskell.nix.
       nativeBuildInputs = [
         pkgs'.cabal-install
-        (inputs.self.formatter pkgs.system)
-        (inputs.self.linter pkgs.system)
+        (inputs.self.lib.mkFormatter inputs.nixpkgs.legacyPackages.${pkgs.system})
+        (inputs.self.lib.mkLinter inputs.nixpkgs.legacyPackages.${pkgs.system})
       ];
       shellHook = ''
         set -x

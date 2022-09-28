@@ -42,6 +42,29 @@
     nlib = nixpkgs.lib;
   in {
     lib = {
+      mkFormatter = pkgs: with pkgs; writeShellApplication {
+        name = ",format";
+        runtimeInputs = [
+          nixpkgs-fmt
+          haskellPackages.cabal-fmt
+          (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
+        ];
+        text = builtins.readFile ./format.sh;
+      };
+
+      mkLinter = pkgs: with pkgs; writeShellApplication {
+        name = ",lint";
+        runtimeInputs = [
+          (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
+        ];
+        # stupid unnecessary IFD
+        text = builtins.readFile (pkgs.substituteAll {
+          name = "substituted-lint.sh";
+          src = ./lint.sh;
+          hlint_config = ./hlint.yaml;
+        }).outPath;
+      };
+
       # needed to avoid IFD
       mkOpaque = x: nlib.mkOverride 100 (nlib.mkOrder 1000 x);
 
@@ -86,38 +109,18 @@
 
               pkgs = nixpkgs.legacyPackages.${system};
 
-              formatter =  with pkgs; writeShellApplication {
-                name = ",format";
-                runtimeInputs = [
-                  nixpkgs-fmt
-                  haskellPackages.cabal-fmt
-                  (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
-                ];
-                text = builtins.readFile ./format.sh;
-              };
+              formatter = self.lib.mkFormatter pkgs;
+              linter = self.lib.mkLinter pkgs;
 
               formatting = pkgs.runCommandNoCC "formatting-check"
                 {
-                  nativeBuildInputs = [ (formatter system) ];
+                  nativeBuildInputs = [ formatter ];
                 }
                 ''
                   cd ${project.src}
                   ,format check
                   touch $out
                 '';
-
-              linter = with pkgs; writeShellApplication {
-                name = ",lint";
-                runtimeInputs = [
-                  (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
-                ];
-                # stupid unnecessary IFD
-                text = builtins.readFile (pkgs.substituteAll {
-                  name = "substituted-lint.sh";
-                  src = ./lint.sh;
-                  hlint_config = ./hlint.yaml;
-                }).outPath;
-              };
 
               linting = pkgs.runCommandNoCC "linting-check"
                 {
