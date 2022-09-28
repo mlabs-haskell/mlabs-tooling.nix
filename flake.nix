@@ -47,7 +47,7 @@
         runtimeInputs = [
           nixpkgs-fmt
           haskellPackages.cabal-fmt
-          (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0)
+          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0))
         ];
         text = builtins.readFile ./format.sh;
       };
@@ -55,7 +55,7 @@
       mkLinter = pkgs: with pkgs; writeShellApplication {
         name = ",lint";
         runtimeInputs = [
-          (haskell.lib.compose.dontCheck haskell.packages.ghc924.hlint_3_4_1)
+          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc942.hlint_3_5))
         ];
         # stupid unnecessary IFD
         text = builtins.readFile (pkgs.substituteAll {
