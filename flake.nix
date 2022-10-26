@@ -22,7 +22,7 @@
     iohk-nix.flake = false;
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
-    plutus.url = "github:input-output-hk/plutus?dir=__std__";
+    plutus.url = "github:input-output-hk/plutus";
     flake-parts.url = "github:mlabs-haskell/flake-parts?ref=fix-for-ifd";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
   };
@@ -155,19 +155,19 @@
                 pkgs.runCommand "emanote-docs" { }
                   ''
                     mkdir $out
-                    ${inputs.emanote.defaultPackage.${system}}/bin/emanote \
+                    ${inputs.emanote.packages.${system}.default}/bin/emanote \
                       --layers "${path};${configDir}" \
                       gen $out
                   '';
 
             in {
-              _module.args.pkgs = inputs.nixpkgs.legacyPackages.${system};
+              _module.args.pkgs = pkgs;
 
               packages = self.lib.mkOpaque (mk "packages" // (if docsPath == null then {} else {
                 docs = mkDocumentation docsPath;
               }) // {
-                haddock = inputs.plutus.${system}.toolchain.library.combine-haddock {
-                  ghc = inputs.plutus.${system}.plutus.packages.ghc;
+                haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
+                  ghc = hn.compiler.ghc924;
                   hspkgs = builtins.map (x: prj.hsPkgs.${x}.components.library) toHaddock;
                   # This doesn't work for some reason, everything breaks, probably because of CA
                   # builtins.map (x: x.components.library) (
