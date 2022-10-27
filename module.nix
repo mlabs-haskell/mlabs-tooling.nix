@@ -74,7 +74,7 @@ let
     };
   module = { config, pkgs, hsPkgs, ... }: {
     _file = "mlabs-tooling.nix/module.nix:module";
-    contentAddressed = true;
+    # FIXME: contentAddressed = true;
     inherit nonReinstallablePkgs; # Needed for a lot of different things
     packages = {
       cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf pkgs.secp256k1 ]];
@@ -118,6 +118,10 @@ in
         , aeson >= 2
         , dependent-sum >= 0.7
         , protolude >= 0.3.2
+        , nothunks >= 0.1.3
+
+      package nothunks
+        flags: +vector +bytestring +text
     '';
     compiler-nix-name = lib.mkDefault inputs.self.lib.default-ghc;
     modules = [ module brokenLibsModule ];

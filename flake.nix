@@ -40,6 +40,11 @@
     };
 
     nlib = nixpkgs.lib;
+
+    checkBuildable = path: nixpkgs.legacyPackages.x86_64-linux.runCommandNoCC "check-path" {} ''
+      echo ${path}
+      touch $out
+    '';
   in {
     lib = {
       mkFormatter = pkgs: with pkgs; writeShellApplication {
@@ -94,8 +99,10 @@
                 type = lib.types.unspecified;
               };
             });
-            udmmdm = lib.mkOption {
-              type = lib.types.attrsOf lib.types.unspecified;
+            flake = flake-parts-lib.mkSubmoduleOptions {
+              herculesCI.ciSystems = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+              };
             };
           };
           config = {
@@ -115,7 +122,7 @@
 
               mk = attr:
                 let a = flk.${attr}; in
-                { default = lib.mkDefault (builtins.head (builtins.attrValues a)); } // a;
+                if a != {} then { default = lib.mkDefault (builtins.head (builtins.attrValues a)); } // a else {};
 
               pkgs = nixpkgs.legacyPackages.${system};
 
@@ -159,7 +166,6 @@
                       --layers "${path};${configDir}" \
                       gen $out
                   '';
-
             in {
               _module.args.pkgs = pkgs;
 
@@ -194,10 +200,10 @@
               project = prj;
             };
             flake.config.hydraJobs = {
-              packages = config.packages.x86_64-linux;
-              checks = config.checks.x86_64-linux;
-              devShells = config.devShells.x86_64-linux;
-              apps = builtins.mapAttrs (_: a: a.program) config.apps.x86_64-linux;
+              packages = config.flake.packages.x86_64-linux;
+              checks = config.flake.checks.x86_64-linux;
+              devShells = config.flake.devShells.x86_64-linux;
+              apps = builtins.mapAttrs (_: a: checkBuildable a.program) config.flake.apps.x86_64-linux;
             };
             flake.config.herculesCI.ciSystems = lib.mkDefault [ "x86_64-linux" ];
             flake.config.escapeHatch = escapeHatch;
