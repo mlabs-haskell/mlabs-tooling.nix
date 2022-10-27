@@ -71,7 +71,6 @@
               }).ghc-lib-parser-ex);
             };
           }).hlint)
-          haskell.packages.ghc924.apply-refact_0_10_0_0
         ];
         # stupid unnecessary IFD
         text = builtins.readFile (pkgs.substituteAll {
