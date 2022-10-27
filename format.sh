@@ -4,20 +4,18 @@ export LC_CTYPE=C.UTF-8
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-if test "x$1" = "xcheck"
+check=""
+if test "$#" -gt 0 && test "$1" = "check"
 then
+	check="yes"
 	fourmolu_mode="check"
 	cabalfmt_mode="-c"
-	nixpkgsfmt_mode="--check"
-	echo check
 else
 	fourmolu_mode="inplace"
 	cabalfmt_mode="-i"
-	nixpkgsfmt_mode=""
-	echo nocheck
 fi
 
-find -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*' | xargs \
+find . -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*' -exec \
 	fourmolu \
 		-o-XTypeApplications \
 		-o-XQualifiedDo \
@@ -29,10 +27,10 @@ find -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*' | xargs 
 		--comma-style leading \
 		--record-brace-space true  \
 		--indent-wheres true \
-		--diff-friendly-import-export true  \
+		--import-export-style diff-friendly  \
 		--respectful true  \
 		--haddock-style multi-line  \
-		--newlines-between-decls 1
-find -type f -name '*.hs' ! -path '*/dist-newstyle/*' ! -path '*/tmp/*'
-find -type f -name '*.cabal' | xargs cabal-fmt "$cabalfmt_mode"
-nixpkgs-fmt $nixpkgsfmt_mode *.nix
+		--newlines-between-decls 1 \
+		{} +
+find . -type f -name '*.cabal' -exec cabal-fmt "$cabalfmt_mode" {} +
+find . -type f -name '*.nix' -exec nixpkgs-fmt ${check:+"--check"} {} +

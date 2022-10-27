@@ -1,6 +1,5 @@
 { inputs }:
 let
-  inherit (inputs.self) default-ghc;
   mylib = { pkgs, compiler-nix-name }: rec {
     mkPackageSpec = src:
       with pkgs.lib;
@@ -28,22 +27,14 @@ let
       in
       { inherit src pname version; };
 
-    mkPackageTarballFor = { pname, version, src }:
-      pkgs.runCommand "${pname}-${version}.tar.gz" { } ''
-        cd ${src}/..
-        tar --sort=name --owner=Hackage:0 --group=Hackage:0 --mtime='UTC 2009-01-01' -czvf $out $(basename ${src})
-      '';
-
     mkHackageDirFor = { pname, version, src }@spec:
-      pkgs.runCommand "${pname}-${version}-hackage"
-        {
-          tarball = mkPackageTarballFor spec;
-        } ''
+      pkgs.runCommand "${pname}-${version}-hackage" {}
+        ''
         set -e
         mkdir -p $out/${pname}/${version}
-        md5=$(md5sum "$tarball"  | cut -f 1 -d ' ')
-        sha256=$(sha256sum "$tarball" | cut -f 1 -d ' ')
-        length=$(stat -c%s "$tarball")
+        md5=11111111111111111111111111111111
+        sha256=1111111111111111111111111111111111111111111111111111111111111111
+        length=1
         cat <<EOF > $out/"${pname}"/"${version}"/package.json
         {
           "signatures" : [],
@@ -67,12 +58,15 @@ let
       '';
 
     mkHackageTarballFromDirsFor = hackageDirs:
-      pkgs.runCommand "01-index.tar.gz" { } ''
-        mkdir hackage
-        ${builtins.concatStringsSep "" (map (dir: ''
+      let
+        f = dir: ''
           echo ${dir}
           ln -s ${dir}/* hackage/
-        '') hackageDirs)}
+        '';
+      in
+      pkgs.runCommand "01-index.tar.gz" { } ''
+        mkdir hackage
+        ${builtins.concatStringsSep "" (map f hackageDirs)}
         cd hackage
         tar --sort=name --owner=root:0 --group=root:0 --mtime='UTC 2009-01-01' -hczvf $out */*/*
       '';
@@ -91,12 +85,18 @@ let
         ${pkgs.haskell-nix.nix-tools.${compiler-nix-name}}/bin/hackage-to-nix $out 01-index.tar "https://mkHackageNix/"
       '';
 
-    mkModuleFor = pkg-specs: {
+    copySrc = src: pkgs.runCommand "copied-src-${builtins.baseNameOf src}" {
+      __contentAddressed = true;
+    } ''
+      cp -T -r ${src} $out
+    '';
+
+    mkModuleFor = pkg-specs: { lib, ... }: {
       # Prevent nix-build from trying to download the packages
       packages = pkgs.lib.listToAttrs (map
         (spec: {
           name = spec.pname;
-          value = { src = mkPackageTarballFor spec; };
+          value = { src = lib.mkOverride 99 (copySrc spec.src); };
         })
         pkg-specs);
     };
@@ -113,26 +113,31 @@ in
 
 { lib, config, pkgs, haskellLib, ... }:
 let
-  theHackages = builtins.map ((mylib { inherit pkgs; compiler-nix-name = default-ghc; }).mkHackageFor) config.extraHackages;
+  l = mylib { inherit pkgs; compiler-nix-name = inputs.self.lib.default-ghc; };
+  # FIXME: We have only one Hackage now
+  # FIXME: Do copySrc here, but for some reason Nix shits itself
+  theHackages = [ (l.mkHackageFor config.extraHackage) ];
+  ifd-parallel = pkgs.runCommandNoCC "ifd-parallel" { myInputs = builtins.foldl' (b: a: b ++ [a.extra-hackage a.extra-hackage-tarball]) [] theHackages; } "echo $myInputs > $out";
+  ifdseq = x: builtins.seq (builtins.readFile ifd-parallel.outPath) x;
   nlib = inputs.nixpkgs.lib;
 in {
   _file = "mlabs-tooling.nix/mk-hackage.nix";
-  options = {
-    extraHackages = lib.mkOption {
-      type = lib.types.listOf (lib.types.listOf lib.types.str);
+  options = with lib.types; {
+    extraHackage = lib.mkOption {
+      type = listOf str; # FIXME: Allow passing in a tuple of the src and cabal file instead.
       default = [];
       description = "List of paths to cabal projects to include as extra hackages";
     };
   };
-  config = {
-    modules = builtins.map (x: x.module) theHackages;
-    extra-hackage-tarballs =
+  config = lib.mkIf (config.extraHackage != []) {
+    modules = ifdseq (builtins.map (x: x.module) theHackages);
+    extra-hackage-tarballs = ifdseq (
       nlib.listToAttrs (nlib.imap0
         (i: x: {
           name = "_" + builtins.toString i;
           value = x.extra-hackage-tarball;
         })
-        theHackages);
-    extra-hackages = builtins.map (x: x.extra-hackage) theHackages;
+        theHackages));
+    extra-hackages = ifdseq (builtins.map (x: import x.extra-hackage) theHackages);
   };
 }

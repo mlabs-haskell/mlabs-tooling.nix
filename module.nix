@@ -5,7 +5,6 @@ let
   # https://github.com/input-output-hk/haskell.nix/issues/1177
   nonReinstallablePkgs = [
     "array"
-    "array"
     "base"
     "binary"
     "bytestring"
@@ -46,96 +45,107 @@ let
     "Win32"
     "xhtml"
   ];
+  brokenLibsModule =
+    let
+      responseFile = builtins.toFile "response-file" ''
+        --optghc=-XFlexibleContexts
+        --optghc=-Wwarn
+        --optghc=-fplugin-opt=PlutusTx.Plugin:defer-errors
+      '';
+      l = [
+        "cardano-binary"
+        "cardano-crypto-class"
+        "cardano-crypto-praos"
+        "cardano-prelude"
+        "heapwords"
+        "measures"
+        "strict-containers"
+        "cardano-ledger-byron"
+        "cardano-slotting"
+      ];
+    in {
+      _file = "mlabs-tooling.nix/module.nix:brokenLibsModule";
+      packages = builtins.listToAttrs (builtins.map (name: {
+        inherit name;
+        value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
+        value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
+        value.components.library.extraSrcFiles = [ responseFile ];
+      }) l);
+    };
   module = { config, pkgs, hsPkgs, ... }: {
+    _file = "mlabs-tooling.nix/module.nix:module";
+    # FIXME: contentAddressed = true;
     inherit nonReinstallablePkgs; # Needed for a lot of different things
     packages = {
-      cardano-binary.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-binary.ghcOptions = [ "-Wwarn" ];
-      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
-      cardano-crypto-class.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-crypto-class.ghcOptions = [ "-Wwarn" ];
-      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
+      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf pkgs.secp256k1 ]];
+      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf ]];
       plutus-simple-model.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-prelude.components.library.setupHaddockFlags = [ "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors" ];
-      cardano-prelude.ghcOptions = [ "-Wwarn" ];
     };
   };
 in
 {
   _file = "mlabs-tooling.nix/module.nix";
   config = {
-    extraHackages = [[
-      "${inputs.cardano-base}/base-deriving-via"
-      "${inputs.cardano-base}/binary"
-      "${inputs.cardano-base}/cardano-crypto-class"
-      "${inputs.cardano-base}/cardano-crypto-praos"
-      "${inputs.cardano-base}/heapwords"
-      "${inputs.cardano-base}/measures"
-      "${inputs.cardano-base}/slotting"
-      "${inputs.cardano-base}/strict-containers"
-      "${inputs.cardano-crypto}"
-      "${inputs.cardano-ledger}/eras/alonzo/impl"
-      "${inputs.cardano-ledger}/eras/alonzo/test-suite"
-      "${inputs.cardano-ledger}/eras/babbage/impl"
-      "${inputs.cardano-ledger}/eras/babbage/test-suite"
-      "${inputs.cardano-ledger}/eras/byron/chain/executable-spec"
-      "${inputs.cardano-ledger}/eras/byron/crypto"
-      "${inputs.cardano-ledger}/eras/byron/crypto/test"
-      "${inputs.cardano-ledger}/eras/byron/ledger/executable-spec"
-      "${inputs.cardano-ledger}/eras/byron/ledger/impl"
-      "${inputs.cardano-ledger}/eras/byron/ledger/impl/test"
-      "${inputs.cardano-ledger}/eras/shelley/impl"
-      "${inputs.cardano-ledger}/eras/shelley-ma/impl"
-      "${inputs.cardano-ledger}/eras/shelley-ma/test-suite"
-      "${inputs.cardano-ledger}/eras/shelley/test-suite"
-      "${inputs.cardano-ledger}/libs/cardano-data"
-      "${inputs.cardano-ledger}/libs/cardano-ledger-core"
-      "${inputs.cardano-ledger}/libs/cardano-ledger-pretty"
-      "${inputs.cardano-ledger}/libs/cardano-ledger-test"
-      "${inputs.cardano-ledger}/libs/cardano-protocol-tpraos"
-      "${inputs.cardano-ledger}/libs/ledger-state"
-      "${inputs.cardano-ledger}/libs/non-integral"
-      "${inputs.cardano-ledger}/libs/plutus-preprocessor"
-      "${inputs.cardano-ledger}/libs/set-algebra"
-      "${inputs.cardano-ledger}/libs/small-steps"
-      "${inputs.cardano-ledger}/libs/small-steps-test"
-      "${inputs.cardano-ledger}/libs/vector-map"
-      "${inputs.cardano-prelude}/cardano-prelude"
-      "${inputs.flat}"
-      "${inputs.plutus}/plutus-core"
-      "${inputs.plutus}/plutus-ledger-api"
-      "${inputs.plutus}/plutus-tx"
-      "${inputs.plutus}/prettyprinter-configurable"
-      "${inputs.plutus}/word-array"
-    ]];
-    # FIXME: Remove once https://github.com/input-output-hk/haskell.nix/pull/1588 is merged
-    cabalProject = lib.mkOverride 1100 ''
-      packages: .
-    '';
     cabalProjectLocal = ''
+      repository ghc-next-packages
+        url: https://input-output-hk.github.io/ghc-next-packages
+        secure: True
+        root-keys:
+        key-threshold: 0
+
       allow-newer:
-        *:base
-        , canonical-json:bytestring
-        , plutus-core:ral
-        , plutus-core:some
-        , inline-r:singletons
+        *:base,
+        *:containers,
+        *:directory,
+        *:time,
+        *:bytestring,
+        *:aeson,
+        *:protolude,
+        *:template-haskell,
+        *:ghc-prim,
+        *:ghc,
+        *:cryptonite,
+        *:formatting,
+        monoidal-containers:aeson,
+        size-based:template-haskell,
+        snap-server:attoparsec,
+      --  tasty-hedgehog:hedgehog,
+        *:hashable,
+        *:text
+
+      constraints:
+        text >= 2
+        , aeson >= 2
+        , dependent-sum >= 0.7
+        , protolude >= 0.3.2
+        , nothunks >= 0.1.3
+
+      package nothunks
+        flags: +vector +bytestring +text
     '';
-    compiler-nix-name = lib.mkDefault inputs.self.default-ghc;
-    modules = [ module ];
+    compiler-nix-name = lib.mkDefault inputs.self.lib.default-ghc;
+    modules = [ module brokenLibsModule ];
+    inputMap."https://input-output-hk.github.io/ghc-next-packages" = "${inputs.ghc-next-packages}";
     shell = {
-      withHoogle = lib.mkOverride 999 true;
+      withHoogle = lib.mkOverride 999 false; # FIXME set to true
       exactDeps = lib.mkOverride 999 true;
       tools.haskell-language-server = {};
       # We use the ones from Nixpkgs, since they are cached reliably.
       # Eventually we will probably want to build these with haskell.nix.
       nativeBuildInputs = [
         pkgs'.cabal-install
-        pkgs'.hlint
-        pkgs'.haskellPackages.cabal-fmt
-        pkgs'.haskell.packages.ghc924.fourmolu_0_8_0_0
-        pkgs'.nixpkgs-fmt
-        (inputs.self.formatter pkgs.system)
+        (inputs.self.lib.mkFormatter inputs.nixpkgs.legacyPackages.${pkgs.system})
+        (inputs.self.lib.mkLinter inputs.nixpkgs.legacyPackages.${pkgs.system})
       ];
+      shellHook = ''
+        set -x
+        if test ! -e .git/hooks/pre-commit
+        then
+          echo -e '#!/bin/sh\n\n,format check' > .git/hooks/pre-commit \
+            && chmod +x .git/hooks/pre-commit
+        fi
+        set +x
+      '';
     };
   };
 }
