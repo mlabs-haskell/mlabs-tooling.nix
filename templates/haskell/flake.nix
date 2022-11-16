@@ -16,9 +16,15 @@
     tooling.url = "github:mlabs-haskell/mlabs-tooling.nix";
   };
 
-  outputs = { self, tooling, ... }: tooling.mkHaskellFlake1 {
-    project = {
-      src = ./.;
+  outputs = inputs@{ self, tooling, ... }: tooling.lib.mkFlake { inherit self; }
+    {
+      imports = [
+        (tooling.lib.mkHaskellFlakeModule1 {
+          project.src = ./.;
+          # project.extraHackage = [
+          #  "${inputs.foo}" # foo is a flake input
+          # ];
+        })
+      ];
     };
-  };
 }
