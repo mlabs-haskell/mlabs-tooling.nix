@@ -216,6 +216,6 @@
       description = "A haskell.nix project";
     };
 
-    inherit (templateFlake) hydraJobs;
+    herculesCI.ciSystems = [ "x86_64-linux" ];
   };
 }
