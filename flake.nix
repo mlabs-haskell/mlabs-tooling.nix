@@ -16,8 +16,8 @@
   inputs = {
     haskell-nix.url = "github:input-output-hk/haskell.nix";
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-    ghc-next-packages.url = "github:input-output-hk/ghc-next-packages?ref=repo";
-    ghc-next-packages.flake = false;
+    cardano-haskell-packages.url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
+    cardano-haskell-packages.flake = false;
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false;
     emanote.url = "github:srid/emanote/master";
@@ -52,7 +52,7 @@
         runtimeInputs = [
           nixpkgs-fmt
           haskellPackages.cabal-fmt
-          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_8_2_0))
+          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_9_0_0))
         ];
         text = builtins.readFile ./format.sh;
       };
@@ -63,10 +63,10 @@
           (haskell.lib.compose.doJailbreak (haskell.packages.ghc924.override {
             overrides = hself: hsuper: {
               base-compat = haskell.lib.doJailbreak hsuper.base-compat;
-              ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_2_20220822;
+              ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_3_20221104;
               ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc924.override {
                 overrides = hself': hsuper': {
-                  ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_2_4_20220729;
+                  ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_3_20221104;
                 };
               }).ghc-lib-parser-ex);
             };
