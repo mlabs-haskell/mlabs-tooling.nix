@@ -87,8 +87,8 @@ in
   _file = "mlabs-tooling.nix/module.nix";
   config = {
     cabalProjectLocal = ''
-      repository ghc-next-packages
-        url: https://input-output-hk.github.io/ghc-next-packages
+      repository cardano-haskell-packages
+        url: https://input-output-hk.github.io/cardano-haskell-packages
         secure: True
         root-keys:
         key-threshold: 0
@@ -125,7 +125,7 @@ in
     '';
     compiler-nix-name = lib.mkDefault inputs.self.lib.default-ghc;
     modules = [ module brokenLibsModule ];
-    inputMap."https://input-output-hk.github.io/ghc-next-packages" = "${inputs.ghc-next-packages}";
+    inputMap."https://input-output-hk.github.io/cardano-haskell-packages" = "${inputs.cardano-haskell-packages}";
     shell = {
       withHoogle = lib.mkOverride 999 false; # FIXME set to true
       exactDeps = lib.mkOverride 999 true;
