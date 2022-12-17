@@ -192,6 +192,9 @@
               devShells.default = lib.mkDefault flk.devShell;
               project = prj;
             };
+            # TODO consider removing this since now we are using Hercules CI
+            # Or perhaps would it make sense keeping this for projects that use this
+            # tooling but want to use an external CI?
             flake.config.hydraJobs = {
               packages = config.flake.packages.x86_64-linux;
               checks = config.flake.checks.x86_64-linux;
