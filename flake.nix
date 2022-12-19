@@ -40,6 +40,8 @@
     '';
   in {
     lib = {
+      inherit modules;
+
       mkFormatter = pkgs: with pkgs; writeShellApplication {
         name = ",format";
         runtimeInputs = [
