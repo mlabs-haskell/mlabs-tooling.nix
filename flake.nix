@@ -22,10 +22,8 @@
 
   outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, ... }:
   let
-    modules = [
-      (import ./module.nix { inherit inputs; })
-      (import ./mk-hackage.nix { inherit inputs; })
-    ];
+    moduleMod =  import ./module.nix { inherit inputs; };
+    mkHackageMod =  import ./mk-hackage.nix { inherit inputs; };
 
     templateFlake = import ./templates/haskell/flake.nix {
       self = templateFlake;
@@ -40,6 +38,8 @@
     '';
   in {
     lib = {
+      inherit moduleMod mkHackageMod;
+
       mkFormatter = pkgs: with pkgs; writeShellApplication {
         name = ",format";
         runtimeInputs = [
@@ -110,7 +110,7 @@
                 ];
               }).haskell-nix;
 
-              prj = hn.cabalProject' (modules ++ [project]);
+              prj = hn.cabalProject' ([moduleMod mkHackageMod project]);
               flk = prj.flake {};
 
               mk = attr:
