@@ -25,7 +25,7 @@
     moduleMod =  import ./module.nix { inherit inputs; };
     mkHackageMod =  import ./mk-hackage.nix { inherit inputs; };
 
-    templateFlake = import ./templates/haskell/flake.nix {
+    templateFlake = (import "${self.templates.default.path}/flake.nix").outputs {
       self = templateFlake;
       tooling = self;
     };
@@ -212,16 +212,15 @@
       description = "A haskell.nix project";
     };
 
-    checks = nlib.genAttrs [ "x86_64-linux" ] (system:
-      let
-        templateFlakeOutputs = (import "${self.templates.default.path}/flake.nix").outputs {
-          self = null;
-          tooling = self;
-        };
-      in {
-        packages = templateFlakeOutputs.packages.${system};
-        devShells = templateFlakeOutputs.devShells.${system};
-        checks = templateFlakeOutputs.checks.${system};
-      });
+    checks = let
+      prepend = set: prefix: nlib.mapAttrs' (name: value: {
+        name = "${prefix}-${name}";
+        inherit value;
+      }) set;
+    in nlib.genAttrs [ "x86_64-linux" ] (system:
+      (prepend (builtins.removeAttrs templateFlake.packages.${system} [ "haddock" ]) "packages") //
+      (prepend templateFlake.devShells.${system} "devShells") //
+      (prepend templateFlake.checks.${system} "checks")
+    );
   };
 }
