@@ -212,6 +212,16 @@
       description = "A haskell.nix project";
     };
 
-    inherit (templateFlake) hydraJobs;
+    checks = nlib.genAttrs [ "x86_64-linux" ] (system:
+      let
+        templateFlakeOutputs = (import "${self.templates.default.path}/flake.nix").outputs {
+          self = null;
+          tooling = self;
+        };
+      in {
+        packages = templateFlakeOutputs.packages.${system};
+        devShells = templateFlakeOutputs.devShells.${system};
+        checks = templateFlakeOutputs.checks.${system};
+      });
   };
 }
