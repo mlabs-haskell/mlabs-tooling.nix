@@ -1,0 +1,8 @@
+version:        3.0
+name:           template-project
+hs-source-dirs: app
+packages:
+    myapp
+    mydep
+    mydepdep
+tests:          false

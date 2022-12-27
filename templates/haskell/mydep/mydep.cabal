@@ -1,0 +1,13 @@
+name:          mydep
+version:       0.0.1
+cabal-version: >=1.2
+
+custom-setup
+  setup-depends: Cabal
+
+library
+  exposed-modules: MyDep
+  setup-depends:   Cabal
+  build-depends:
+      base
+    , mydepdep

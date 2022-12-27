@@ -25,7 +25,7 @@
     moduleMod =  import ./module.nix { inherit inputs; };
     mkHackageMod =  import ./mk-hackage.nix { inherit inputs; };
 
-    templateFlake = import ./templates/haskell/flake.nix {
+    templateFlake = (import "${self.templates.default.path}/flake.nix").outputs {
       self = templateFlake;
       tooling = self;
     };
@@ -76,7 +76,7 @@
       # needed to avoid IFD
       mkOpaque = x: nlib.mkOverride 100 (nlib.mkOrder 1000 x);
 
-      default-ghc = "ghc924";
+      default-ghc = "ghc925";
 
       inherit (flake-parts.lib) mkFlake;
       # versioned
@@ -212,6 +212,15 @@
       description = "A haskell.nix project";
     };
 
-    inherit (templateFlake) hydraJobs;
+    checks = let
+      prepend = set: prefix: nlib.mapAttrs' (name: value: {
+        name = "${prefix}-${name}";
+        inherit value;
+      }) set;
+    in nlib.genAttrs [ "x86_64-linux" ] (system:
+      (prepend (builtins.removeAttrs templateFlake.packages.${system} [ "haddock" ]) "packages") //
+      (prepend templateFlake.devShells.${system} "devShells") //
+      (prepend templateFlake.checks.${system} "checks")
+    );
   };
 }
