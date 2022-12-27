@@ -1,4 +1,5 @@
 import MyDep (mydep)
+import Control.Monad (when)
 
 main :: IO ()
 main =
