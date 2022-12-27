@@ -76,7 +76,7 @@
       # needed to avoid IFD
       mkOpaque = x: nlib.mkOverride 100 (nlib.mkOrder 1000 x);
 
-      default-ghc = "ghc924";
+      default-ghc = "ghc925";
 
       inherit (flake-parts.lib) mkFlake;
       # versioned
