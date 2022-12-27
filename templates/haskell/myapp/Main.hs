@@ -2,4 +2,4 @@ import MyDep (mydep)
 
 main :: IO ()
 main =
-  if mydep == () then putStrLn "Hello, World!" else pure ()
+  Control.Monad.when (mydep == ()) $ putStrLn "Hello, World!"
