@@ -174,7 +174,7 @@
 
               packages = self.lib.mkOpaque (mk "packages" // (if docsPath == null then {} else {
                 docs = mkDocumentation docsPath;
-              }) // {
+              }) // (if toHaddock == [] then {} else {
                 haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
                   ghc = hn.compiler.ghc924;
                   hspkgs = builtins.map (x: prj.hsPkgs.${x}.components.library) toHaddock;
@@ -191,7 +191,7 @@
                     '';
                   };
                 };
-              });
+              }));
               checks = self.lib.mkOpaque (mk "checks" // {
                 inherit formatting linting;
               });
