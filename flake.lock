@@ -605,6 +605,21 @@
         "type": "github"
       }
     },
+    "flake-utils_12": {
+      "locked": {
+        "lastModified": 1652776076,
+        "narHash": "sha256-gzTw/v1vj4dOVbpBSJX4J0DwUR6LIyXo7/SuuTJp1kM=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "04c1b180862888302ddfb2e3ad9eaa63afc60cf8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "flake-utils_2": {
       "locked": {
         "lastModified": 1653893745,
@@ -1788,6 +1803,21 @@
         "type": "github"
       }
     },
+    "nixpkgs_11": {
+      "locked": {
+        "lastModified": 1652969555,
+        "narHash": "sha256-F+yPkuCudylgJvTIogiw6833Iis5tgFsVMMBisldS6s=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "00e9d7ab7a184d23027ee994771904d69dcc7c07",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1653581809,
@@ -2004,7 +2034,8 @@
         "haskell-nix": "haskell-nix",
         "iohk-nix": "iohk-nix",
         "nixpkgs": "nixpkgs_5",
-        "plutus": "plutus"
+        "plutus": "plutus",
+        "styleguide": "styleguide"
       }
     },
     "sphinxcontrib-haddock": {
@@ -2167,6 +2198,25 @@
       "original": {
         "owner": "divnix",
         "repo": "std",
+        "type": "github"
+      }
+    },
+    "styleguide": {
+      "inputs": {
+        "flake-utils": "flake-utils_12",
+        "nixpkgs": "nixpkgs_11"
+      },
+      "locked": {
+        "lastModified": 1671643427,
+        "narHash": "sha256-+CijqWIy+EErZ3mA9qYuEY135VUlzBIpJ89FSa0Dx6E=",
+        "owner": "mlabs-haskell",
+        "repo": "styleguide",
+        "rev": "e2c26f449c54c8bb960709bd46ae22b1f76ce074",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mlabs-haskell",
+        "repo": "styleguide",
         "type": "github"
       }
     },

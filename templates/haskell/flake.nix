@@ -8,6 +8,7 @@
 
   inputs = {
     tooling.url = "github:mlabs-haskell/mlabs-tooling.nix";
+    styleguide.url = "github:mlabs-haskell/styleguide";
   };
 
   outputs = inputs@{ self, tooling, ... }: tooling.lib.mkFlake { inherit self; }
@@ -20,5 +21,15 @@
           # ];
         })
       ];
+
+      perSystem = { system, ... }: {
+        checks = {
+          # Check that files are formatted according to styleguide.
+          format = inputs.styleguide.lib.${system}.mkCheck self;
+        };
+
+        # Format files according to styleguide. Run with `nix fmt`.
+        formatter = inputs.styleguide.lib.${system}.mkFormatter self;
+      };
     };
 }
