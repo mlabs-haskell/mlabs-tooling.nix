@@ -46,7 +46,7 @@
           export LC_CTYPE=C.UTF-8
           export LC_ALL=C.UTF-8
           export LANG=C.UTF-8
-          ${pkgs.python3}/bin/python3 -m http.server --directory ${target}/share/doc 8080
+          ${pkgs.webfs}/bin/webfsd -r ${target}/share/doc/index.html -p 8080
         '';
 
       mkFormatter = pkgs: with pkgs; writeShellApplication {
