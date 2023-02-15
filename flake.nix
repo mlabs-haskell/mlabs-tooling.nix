@@ -40,6 +40,15 @@
     lib = {
       inherit moduleMod mkHackageMod;
 
+      mkDocs = target: pkgs: pkgs.writeShellScript "docs"
+        ''
+          set -xe
+          export LC_CTYPE=C.UTF-8
+          export LC_ALL=C.UTF-8
+          export LANG=C.UTF-8
+          ${pkgs.python3}/bin/python3 -m http.server --directory ${target}/share/doc 8080
+        '';
+
       mkFormatter = pkgs: with pkgs; writeShellApplication {
         name = ",format";
         runtimeInputs = [
@@ -72,15 +81,6 @@
           hlint_config = ./hlint.yaml;
         }).outPath;
       };
-
-      mkDocs = pkgs: with pkgs; writeShellApplication {
-        name = ",docs";
-        runtimeInputs = [
-          pkgs.python3
-        ];
-        text = builtins.readFile ./docs.sh;
-      };
-
 
       # needed to avoid IFD
       mkOpaque = x: nlib.mkOverride 100 (nlib.mkOrder 1000 x);
@@ -130,7 +130,6 @@
 
               formatter = self.lib.mkFormatter pkgs;
               linter = self.lib.mkLinter pkgs;
-              docs = self.lib.mkDocs pkgs;
 
               formatting = pkgs.runCommandNoCC "formatting-check"
                 {
@@ -198,7 +197,6 @@
               apps = self.lib.mkOpaque (mk "apps" // {
                 format.type = "app"; format.program = "${formatter}/bin/,format";
                 lint.type = "app"; lint.program = "${linter}/bin/,lint";
-                docs.type = "app"; docs.program = "${docs}/bin/,docs";
               });
               devShells.default = lib.mkDefault flk.devShell;
               project = prj;

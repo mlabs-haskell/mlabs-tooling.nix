@@ -135,7 +135,6 @@ in
         pkgs'.cabal-install
         (inputs.self.lib.mkFormatter inputs.nixpkgs.legacyPackages.${pkgs.system})
         (inputs.self.lib.mkLinter inputs.nixpkgs.legacyPackages.${pkgs.system})
-        (inputs.self.lib.mkDocs inputs.nixpkgs.legacyPackages.${pkgs.system})
       ];
       shellHook = ''
         set -x
