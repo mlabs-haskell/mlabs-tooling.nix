@@ -43,9 +43,6 @@
       mkDocs = target: pkgs: pkgs.writeShellScript "docs"
         ''
           set -xe
-          export LC_CTYPE=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
           cd ${target}/share/doc/
           ${pkgs.webfs}/bin/webfsd -F -p 8080
         '';
