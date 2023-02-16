@@ -90,6 +90,7 @@
       default-ghc = "ghc925";
 
       inherit (flake-parts.lib) mkFlake;
+
       # versioned
       mkHaskellFlakeModule1 =
         { project
@@ -111,7 +112,7 @@
           };
           config = {
             systems = lib.mkDefault [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
-            perSystem = { system, ... }:
+            perSystem = { system, self', ... }:
             let
               hn = (import haskell-nix.inputs.nixpkgs {
                 inherit system;
@@ -132,6 +133,7 @@
 
               formatter = self.lib.mkFormatter pkgs;
               linter = self.lib.mkLinter pkgs;
+              docs-server = target : self.lib.mkDocs target pkgs;
 
               formatting = pkgs.runCommandNoCC "formatting-check"
                 {
@@ -199,6 +201,8 @@
               apps = self.lib.mkOpaque (mk "apps" // {
                 format.type = "app"; format.program = "${formatter}/bin/,format";
                 lint.type = "app"; lint.program = "${linter}/bin/,lint";
+                docs.type = "app";
+                docs.program = "${docs-server self'.packages.haddock}/bin/serve-docs";
               });
               devShells.default = lib.mkDefault flk.devShell;
               project = prj;
