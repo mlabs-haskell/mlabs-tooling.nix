@@ -41,12 +41,13 @@
       inherit moduleMod mkHackageMod;
 
       mkDocs = target: pkgs: pkgs.writeShellApplication {
-        name = "docs";
+        name = "serve-docs";
+        runtimeInputs = [ pkgs.webfs ];
         text =
         ''
-          set -xe
+          set -x
           cd ${target}/share/doc/
-          ${pkgs.webfs}/bin/webfsd -F -p 8080
+          webfsd -F -p 8080
         '';
       };
 
