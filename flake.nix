@@ -40,12 +40,15 @@
     lib = {
       inherit moduleMod mkHackageMod;
 
-      mkDocs = target: pkgs: pkgs.writeShellScript "docs"
+      mkDocs = target: pkgs: pkgs.writeShellApplication {
+        name = "docs";
+        text =
         ''
           set -xe
           cd ${target}/share/doc/
           ${pkgs.webfs}/bin/webfsd -F -p 8080
         '';
+      };
 
       mkFormatter = pkgs: with pkgs; writeShellApplication {
         name = ",format";
