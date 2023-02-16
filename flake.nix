@@ -90,7 +90,6 @@
       default-ghc = "ghc925";
 
       inherit (flake-parts.lib) mkFlake;
-
       # versioned
       mkHaskellFlakeModule1 =
         { project
