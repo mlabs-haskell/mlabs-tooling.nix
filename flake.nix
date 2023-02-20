@@ -56,7 +56,7 @@
         runtimeInputs = [
           nixpkgs-fmt
           haskellPackages.cabal-fmt
-          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_9_0_0))
+          (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_10_1_0))
         ];
         text = builtins.readFile ./format.sh;
       };
@@ -67,10 +67,10 @@
           (haskell.lib.compose.doJailbreak (haskell.packages.ghc924.override {
             overrides = hself: hsuper: {
               base-compat = haskell.lib.doJailbreak hsuper.base-compat;
-              ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_3_20221104;
+              ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_4_20221225;
               ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc924.override {
                 overrides = hself': hsuper': {
-                  ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_3_20221104;
+                  ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_4_20221225;
                 };
               }).ghc-lib-parser-ex);
             };
