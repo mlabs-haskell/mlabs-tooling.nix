@@ -46,8 +46,7 @@
         text =
         ''
           set -x
-          cd ${target}/share/doc/
-          webfsd -F -p 8080
+          webfsd -F -p 8080 -r ${target}/share/doc/ -f index.html
         '';
       };
 
