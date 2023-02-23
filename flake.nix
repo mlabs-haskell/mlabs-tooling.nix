@@ -199,9 +199,10 @@
               apps = self.lib.mkOpaque (mk "apps" // {
                 format.type = "app"; format.program = "${formatter}/bin/,format";
                 lint.type = "app"; lint.program = "${linter}/bin/,lint";
+              } // (if self'.packages ? haddock then {
                 docs.type = "app";
                 docs.program = "${docs-server self'.packages.haddock}/bin/serve-docs";
-              });
+              } else {}));
               devShells.default = lib.mkDefault flk.devShell;
               project = prj;
             };
