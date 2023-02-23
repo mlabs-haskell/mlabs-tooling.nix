@@ -28,34 +28,34 @@ let
       { inherit src pname version; };
 
     mkHackageDirFor = { pname, version, src }@spec:
-      pkgs.runCommand "${pname}-${version}-hackage" {}
+      pkgs.runCommand "${pname}-${version}-hackage" { }
         ''
-        set -e
-        mkdir -p $out/${pname}/${version}
-        md5=11111111111111111111111111111111
-        sha256=1111111111111111111111111111111111111111111111111111111111111111
-        length=1
-        cat <<EOF > $out/"${pname}"/"${version}"/package.json
-        {
-          "signatures" : [],
-          "signed" : {
-              "_type" : "Targets",
-              "expires" : null,
-              "targets" : {
-                "<repo>/package/${pname}-${version}.tar.gz" : {
-                    "hashes" : {
-                      "md5" : "$md5",
-                      "sha256" : "$sha256"
-                    },
-                    "length" : $length
-                }
-              },
-              "version" : 0
+          set -e
+          mkdir -p $out/${pname}/${version}
+          md5=11111111111111111111111111111111
+          sha256=1111111111111111111111111111111111111111111111111111111111111111
+          length=1
+          cat <<EOF > $out/"${pname}"/"${version}"/package.json
+          {
+            "signatures" : [],
+            "signed" : {
+                "_type" : "Targets",
+                "expires" : null,
+                "targets" : {
+                  "<repo>/package/${pname}-${version}.tar.gz" : {
+                      "hashes" : {
+                        "md5" : "$md5",
+                        "sha256" : "$sha256"
+                      },
+                      "length" : $length
+                  }
+                },
+                "version" : 0
+            }
           }
-        }
-        EOF
-        cp ${src}/*.cabal $out/"${pname}"/"${version}"/
-      '';
+          EOF
+          cp ${src}/*.cabal $out/"${pname}"/"${version}"/
+        '';
 
     mkHackageTarballFromDirsFor = hackageDirs:
       let
@@ -116,19 +116,20 @@ let
   # FIXME: We have only one Hackage now
   # FIXME: Do copySrc here, but for some reason Nix shits itself
   theHackages = [ (l.mkHackageFor config.extraHackage) ];
-  ifd-parallel = pkgs.runCommandNoCC "ifd-parallel" { myInputs = builtins.foldl' (b: a: b ++ [a.extra-hackage a.extra-hackage-tarball]) [] theHackages; } "echo $myInputs > $out";
+  ifd-parallel = pkgs.runCommandNoCC "ifd-parallel" { myInputs = builtins.foldl' (b: a: b ++ [ a.extra-hackage a.extra-hackage-tarball ]) [ ] theHackages; } "echo $myInputs > $out";
   ifdseq = x: builtins.seq (builtins.readFile ifd-parallel.outPath) x;
   nlib = inputs.nixpkgs.lib;
-in {
+in
+{
   _file = "mlabs-tooling.nix/mk-hackage.nix";
   options = with lib.types; {
     extraHackage = lib.mkOption {
       type = listOf str; # FIXME: Allow passing in a tuple of the src and cabal file instead.
-      default = [];
+      default = [ ];
       description = "List of paths to cabal projects to include as extra hackages";
     };
   };
-  config = lib.mkIf (config.extraHackage != []) {
+  config = lib.mkIf (config.extraHackage != [ ]) {
     modules = ifdseq (builtins.map (x: x.module) theHackages);
     extra-hackage-tarballs = ifdseq (
       nlib.listToAttrs (nlib.imap0
