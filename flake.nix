@@ -90,6 +90,7 @@
         default-ghc = "ghc925";
 
         inherit (flake-parts.lib) mkFlake;
+        hci-module = hci-effects.flakeModule;
         # versioned
         mkHaskellFlakeModule1 =
           { project
@@ -218,7 +219,6 @@
                 devShells = config.flake.devShells.x86_64-linux;
                 apps = builtins.mapAttrs (_: a: checkBuildable a.program) config.flake.apps.x86_64-linux;
               };
-              flake.config.mlabs-hercules.ciSystems = lib.mkDefault [ "x86_64-linux" ];
               flake.config.escapeHatch = escapeHatch;
             };
           };
