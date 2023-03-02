@@ -104,7 +104,7 @@
                 };
               });
               flake = flake-parts-lib.mkSubmoduleOptions {
-                herculesCI.ciSystems = lib.mkOption {
+                mlabs-hercules.ciSystems = lib.mkOption {
                   type = lib.types.listOf lib.types.str;
                 };
               };
@@ -219,7 +219,7 @@
                 devShells = config.flake.devShells.x86_64-linux;
                 apps = builtins.mapAttrs (_: a: checkBuildable a.program) config.flake.apps.x86_64-linux;
               };
-              flake.config.herculesCI.ciSystems = lib.mkDefault [ "x86_64-linux" ];
+              flake.config.mlabs-hercules.ciSystems = lib.mkDefault [ "x86_64-linux" ];
               flake.config.escapeHatch = escapeHatch;
             };
           };
