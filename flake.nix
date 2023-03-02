@@ -55,8 +55,8 @@
           name = ",format";
           runtimeInputs = [
             nixpkgs-fmt
-            haskell.packages.ghc925.cabal-fmt
-            haskell.packages.ghc925.fourmolu
+            haskell.packages.ghc924.cabal-fmt
+            haskell.packages.ghc924.fourmolu
           ];
           text = builtins.readFile ./format.sh;
         };
@@ -64,7 +64,7 @@
         mkLinter = pkgs: with pkgs; writeShellApplication {
           name = ",lint";
           runtimeInputs = [
-            haskell.packages.ghc925.hlint
+            haskell.packages.ghc924.hlint
           ];
           # stupid unnecessary IFD
           text = builtins.readFile (pkgs.substituteAll {
@@ -169,7 +169,7 @@
                     docs = mkDocumentation docsPath;
                   }) // (if toHaddock == [ ] then { } else {
                     haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
-                      ghc = hn.compiler.ghc925;
+                      ghc = hn.compiler.ghc924;
                       hspkgs = builtins.map (x: prj.hsPkgs.${x}.components.library) toHaddock;
                       # This doesn't work for some reason, everything breaks, probably because of CA
                       # builtins.map (x: x.components.library) (
