@@ -16,11 +16,11 @@
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
     plutus.url = "github:input-output-hk/plutus";
-    flake-parts.url = "github:mlabs-haskell/flake-parts?ref=fix-for-ifd";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    hci-effects.url = "github:hercules-ci/hercules-ci-effects";
   };
 
-  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, ... }:
+  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, hci-effects, ... }:
     let
       moduleMod = import ./module.nix { inherit inputs; };
       mkHackageMod = import ./mk-hackage.nix { inherit inputs; };
@@ -55,8 +55,8 @@
           name = ",format";
           runtimeInputs = [
             nixpkgs-fmt
-            haskellPackages.cabal-fmt
-            (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_9_0_0))
+            haskell.packages.ghc925.cabal-fmt
+            haskell.packages.ghc925.fourmolu
           ];
           text = builtins.readFile ./format.sh;
         };
@@ -64,13 +64,13 @@
         mkLinter = pkgs: with pkgs; writeShellApplication {
           name = ",lint";
           runtimeInputs = [
-            (haskell.lib.compose.doJailbreak (haskell.packages.ghc924.override {
+            (haskell.lib.compose.doJailbreak (haskell.packages.ghc925.override {
               overrides = hself: hsuper: {
                 base-compat = haskell.lib.doJailbreak hsuper.base-compat;
-                ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_3_20221104;
-                ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc924.override {
+                ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_4_20221225;
+                ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc925.override {
                   overrides = hself': hsuper': {
-                    ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_3_20221104;
+                    ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_4_20221225;
                   };
                 }).ghc-lib-parser-ex);
               };
@@ -104,13 +104,12 @@
                 };
               });
               flake = flake-parts-lib.mkSubmoduleOptions {
-                mlabs-hercules.ciSystems = lib.mkOption {
-                  type = lib.types.listOf lib.types.str;
-                };
               };
             };
             config = {
-              systems = lib.mkDefault [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
+              systems =  if builtins.hasAttr "currentSystem" builtins
+                then [ builtins.currentSystem ]
+                else [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
               perSystem = { system, self', ... }:
                 let
                   hn = (import haskell-nix.inputs.nixpkgs {
@@ -179,7 +178,7 @@
                     docs = mkDocumentation docsPath;
                   }) // (if toHaddock == [ ] then { } else {
                     haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
-                      ghc = hn.compiler.ghc924;
+                      ghc = hn.compiler.ghc925;
                       hspkgs = builtins.map (x: prj.hsPkgs.${x}.components.library) toHaddock;
                       # This doesn't work for some reason, everything breaks, probably because of CA
                       # builtins.map (x: x.components.library) (
