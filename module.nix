@@ -121,9 +121,6 @@ in
         , dependent-sum >= 0.7
         , protolude >= 0.3.2
         , nothunks >= 0.1.3
-      -- this is absolutely nuts, depedendent-sum-template, a public
-      -- archive depends on this 
-        , th-extras < 0.0.0.4
 
       package nothunks
         flags: +vector +bytestring +text
