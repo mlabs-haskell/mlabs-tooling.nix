@@ -64,17 +64,7 @@
         mkLinter = pkgs: with pkgs; writeShellApplication {
           name = ",lint";
           runtimeInputs = [
-            (haskell.lib.compose.doJailbreak (haskell.packages.ghc925.override {
-              overrides = hself: hsuper: {
-                base-compat = haskell.lib.doJailbreak hsuper.base-compat;
-                ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_4_20221225;
-                ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc925.override {
-                  overrides = hself': hsuper': {
-                    ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_4_20221225;
-                  };
-                }).ghc-lib-parser-ex);
-              };
-            }).hlint)
+            haskell.packages.ghc925.hlint
           ];
           # stupid unnecessary IFD
           text = builtins.readFile (pkgs.substituteAll {
