@@ -16,11 +16,11 @@
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
     plutus.url = "github:input-output-hk/plutus";
-    flake-parts.url = "github:mlabs-haskell/flake-parts?ref=fix-for-ifd";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    hci-effects.url = "github:hercules-ci/hercules-ci-effects";
   };
 
-  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, ... }:
+  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, hci-effects, ... }:
     let
       moduleMod = import ./module.nix { inherit inputs; };
       mkHackageMod = import ./mk-hackage.nix { inherit inputs; };
@@ -40,6 +40,7 @@
     {
       lib = {
         inherit moduleMod mkHackageMod;
+        hercules-flakeModule = hci-effects.flakeModule;
 
         mkDocs = target: pkgs: pkgs.writeShellApplication {
           name = "serve-docs";
