@@ -94,6 +94,7 @@
         mkHaskellFlakeModule1 =
           { project
           , docsPath ? null
+          , baseUrl ? "/documentation/"
           , toHaddock ? [ ]
           }: escapeHatch@{ config, lib, flake-parts-lib, ... }: {
             _file = "mlabs-tooling.nix:mkHaskellFlakeModule1";
@@ -154,10 +155,10 @@
                       touch $out
                     '';
 
-                  mkDocumentation = path:
+                  mkDocumentation = baseUrl: path:
                     let
                       configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
-                        template.baseUrl = "/documentation";
+                        template = { inherit baseUrl; };
                       };
                       configDir = pkgs.runCommand "emanote-configDir" { } ''
                         mkdir -p $out
@@ -176,7 +177,7 @@
                   _module.args.pkgs = pkgs;
 
                   packages = self.lib.mkOpaque (mk "packages" // (if docsPath == null then { } else {
-                    docs = mkDocumentation docsPath;
+                    docs = mkDocumentation baseUrl docsPath;
                   }) // (if toHaddock == [ ] then { } else {
                     haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
                       ghc = hn.compiler.ghc924;
