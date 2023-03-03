@@ -210,7 +210,10 @@
                     docs.type = "app";
                     docs.program = "${docs-server self'.packages.haddock}/bin/serve-docs";
                   } else { }));
-                  devShells.default = lib.mkDefault flk.devShell;
+                  devShells =  rec {
+                    haskell-nix = flk.devShell;
+                    default = lib.mkDefault haskell-nix;
+                  };
                   project = prj;
                 };
               # TODO consider removing this since now we are using Hercules CI
