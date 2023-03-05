@@ -14,7 +14,6 @@
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false;
     emanote.url = "github:srid/emanote/master";
-    emanote.inputs.nixpkgs.follows = "nixpkgs";
     plutus.url = "github:input-output-hk/plutus";
     flake-parts.url = "github:hercules-ci/flake-parts";
     hci-effects.url = "github:hercules-ci/hercules-ci-effects";
