@@ -63,22 +63,25 @@ let
         "cardano-ledger-byron"
         "cardano-slotting"
       ];
-    in {
+    in
+    {
       _file = "mlabs-tooling.nix/module.nix:brokenLibsModule";
-      packages = builtins.listToAttrs (builtins.map (name: {
-        inherit name;
-        value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
-        value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
-        value.components.library.extraSrcFiles = [ responseFile ];
-      }) l);
+      packages = builtins.listToAttrs (builtins.map
+        (name: {
+          inherit name;
+          value.components.library.setupHaddockFlags = [ "--haddock-options=@${responseFile}" ];
+          value.components.library.ghcOptions = [ "-XFlexibleContexts" "-Wwarn" "-fplugin-opt=PlutusTx.Plugin:defer-errors" ];
+          value.components.library.extraSrcFiles = [ responseFile ];
+        })
+        l);
     };
   module = { config, pkgs, hsPkgs, ... }: {
     _file = "mlabs-tooling.nix/module.nix:module";
     # FIXME: contentAddressed = true;
     inherit nonReinstallablePkgs; # Needed for a lot of different things
     packages = {
-      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf pkgs.secp256k1 ]];
-      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [[ pkgs.libsodium-vrf ]];
+      cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
+      cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
     };
   };
 in
@@ -128,7 +131,7 @@ in
     shell = {
       withHoogle = lib.mkOverride 999 false; # FIXME set to true
       exactDeps = lib.mkOverride 999 true;
-      tools.haskell-language-server = {};
+      tools.haskell-language-server = { };
       # We use the ones from Nixpkgs, since they are cached reliably.
       # Eventually we will probably want to build these with haskell.nix.
       nativeBuildInputs = [
