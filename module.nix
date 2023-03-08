@@ -140,13 +140,14 @@ in
         (inputs.self.lib.mkLinter inputs.nixpkgs.legacyPackages.${pkgs.system})
       ];
       shellHook = ''
-        set -x
-        if test ! -e .git/hooks/pre-commit
+        fp=$(git rev-parse --git-path hooks)/pre-commit
+        if test ! -e "$fp"
         then
-          echo -e '#!/bin/sh\n\n,format check' > .git/hooks/pre-commit \
-            && chmod +x .git/hooks/pre-commit
+          set -x
+          echo -e '#!/bin/sh\n\n,format check' > "$fp" \
+            && chmod +x "$fp"
+          set +x
         fi
-        set +x
       '';
     };
   };
