@@ -139,7 +139,7 @@
                       nativeBuildInputs = [ formatter ];
                     }
                     ''
-                      cd ${project.src}
+                      cd ${prj.src}
                       ,format check
                       touch $out
                     '';
@@ -149,7 +149,7 @@
                       nativeBuildInputs = [ linter ];
                     }
                     ''
-                      cd ${project.src}
+                      cd ${prj.src}
                       ,lint
                       touch $out
                     '';
