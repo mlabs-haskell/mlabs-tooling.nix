@@ -1,3 +1,5 @@
+**DEPRECATED** in favour of [Liqwid nix](https://github.com/Liqwid-Labs/liqwid-nix), which is better maintained, more modern, and more feature complete.
+
 # mlabs-tooling.nix (codename echidna)
 
 A flake that provides everything necessary to set up a project within our scopes. This is also a place to come to if you're a library maintainer or have issues with a dependency. 
