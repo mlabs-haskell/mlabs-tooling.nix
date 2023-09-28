@@ -16,11 +16,11 @@
     emanote.url = "github:srid/emanote/master";
     emanote.inputs.nixpkgs.follows = "nixpkgs";
     plutus.url = "github:input-output-hk/plutus";
-    flake-parts.url = "github:mlabs-haskell/flake-parts?ref=fix-for-ifd";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    hci-effects.url = "github:hercules-ci/hercules-ci-effects";
   };
 
-  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, ... }:
+  outputs = inputs@{ self, flake-parts, emanote, nixpkgs, iohk-nix, haskell-nix, hci-effects, ... }:
     let
       moduleMod = import ./module.nix { inherit inputs; };
       mkHackageMod = import ./mk-hackage.nix { inherit inputs; };
@@ -55,8 +55,8 @@
           name = ",format";
           runtimeInputs = [
             nixpkgs-fmt
-            haskellPackages.cabal-fmt
-            (haskell.lib.compose.doJailbreak (haskell.lib.compose.dontCheck haskell.packages.ghc924.fourmolu_0_9_0_0))
+            haskell.packages.ghc924.cabal-fmt
+            haskell.packages.ghc924.fourmolu
           ];
           text = builtins.readFile ./format.sh;
         };
@@ -64,17 +64,7 @@
         mkLinter = pkgs: with pkgs; writeShellApplication {
           name = ",lint";
           runtimeInputs = [
-            (haskell.lib.compose.doJailbreak (haskell.packages.ghc924.override {
-              overrides = hself: hsuper: {
-                base-compat = haskell.lib.doJailbreak hsuper.base-compat;
-                ghc-lib-parser = haskell.lib.doJailbreak hsuper.ghc-lib-parser_9_4_3_20221104;
-                ghc-lib-parser-ex = haskell.lib.doJailbreak (haskell.lib.compose.dontCheck (haskell.packages.ghc924.override {
-                  overrides = hself': hsuper': {
-                    ghc-lib-parser = haskell.lib.doJailbreak hsuper'.ghc-lib-parser_9_4_3_20221104;
-                  };
-                }).ghc-lib-parser-ex);
-              };
-            }).hlint)
+            haskell.packages.ghc924.hlint
           ];
           # stupid unnecessary IFD
           text = builtins.readFile (pkgs.substituteAll {
@@ -90,10 +80,12 @@
         default-ghc = "ghc925";
 
         inherit (flake-parts.lib) mkFlake;
+        hci-module = hci-effects.flakeModule;
         # versioned
         mkHaskellFlakeModule1 =
           { project
           , docsPath ? null
+          , baseUrl ? "/documentation/"
           , toHaddock ? [ ]
           }: escapeHatch@{ config, lib, flake-parts-lib, ... }: {
             _file = "mlabs-tooling.nix:mkHaskellFlakeModule1";
@@ -104,13 +96,12 @@
                 };
               });
               flake = flake-parts-lib.mkSubmoduleOptions {
-                herculesCI.ciSystems = lib.mkOption {
-                  type = lib.types.listOf lib.types.str;
-                };
               };
             };
             config = {
-              systems = lib.mkDefault [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
+              systems =  if builtins.hasAttr "currentSystem" builtins
+                then [ builtins.currentSystem ]
+                else [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
               perSystem = { system, self', ... }:
                 let
                   hn = (import haskell-nix.inputs.nixpkgs {
@@ -154,10 +145,10 @@
                       touch $out
                     '';
 
-                  mkDocumentation = path:
+                  mkDocumentation = baseUrl: path:
                     let
                       configFile = (pkgs.formats.yaml { }).generate "emanote-configFile" {
-                        template.baseUrl = "/documentation";
+                        template = { inherit baseUrl; };
                       };
                       configDir = pkgs.runCommand "emanote-configDir" { } ''
                         mkdir -p $out
@@ -176,7 +167,7 @@
                   _module.args.pkgs = pkgs;
 
                   packages = self.lib.mkOpaque (mk "packages" // (if docsPath == null then { } else {
-                    docs = mkDocumentation docsPath;
+                    docs = mkDocumentation baseUrl docsPath;
                   }) // (if toHaddock == [ ] then { } else {
                     haddock = inputs.plutus.${system}.plutus.library.combine-haddock {
                       ghc = hn.compiler.ghc924;
@@ -219,7 +210,6 @@
                 devShells = config.flake.devShells.x86_64-linux;
                 apps = builtins.mapAttrs (_: a: checkBuildable a.program) config.flake.apps.x86_64-linux;
               };
-              flake.config.herculesCI.ciSystems = lib.mkDefault [ "x86_64-linux" ];
               flake.config.escapeHatch = escapeHatch;
             };
           };
